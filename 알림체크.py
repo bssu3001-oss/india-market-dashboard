@@ -175,49 +175,40 @@ def fetch_market_data():
     }
 
 
-# ── AI 코멘트 생성 ──
-def generate_ai_comment(data, anthropic_api_key):
-    if not anthropic_api_key:
-        return None
-    slot_kr = {"morning": "오전", "afternoon": "오후", "evening": "저녁"}.get(get_run_slot(), "")
-    prompt = f"""아래는 인도 NIFTY 50 최신 데이터입니다. 한국 투자자 관점에서 오늘 {slot_kr} 시황을 3문장으로 요약해주세요. 숫자 근거 포함, 쉬운 말로, 마지막엔 한 줄 투자 조언.
-
-현재가: {data['current']:,} ({'+' if data['pct']>=0 else ''}{data['pct']}%)
-이평선: {data['ma_signal']} (MA5={data['ma5']:,} MA13={data['ma13']:,} MA26={data['ma26']:,})
-RSI(14주): {data['rsi']} | 4주 모멘텀: {data['mom4']:+}%
-52주 고점 대비: {data['from_hi']}%
-India VIX: {data['india_vix'] or 'N/A'} | US VIX: {data['us_vix'] or 'N/A'}
-USD/INR: {data['usdinr'] or 'N/A'} | 브렌트유: ${data['crude'] or 'N/A'}"""
-
-    req_body = json.dumps({
-        "model": "claude-haiku-4-5-20251001",
-        "max_tokens": 300,
-        "messages": [{"role": "user", "content": prompt}]
-    }).encode()
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=req_body,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": anthropic_api_key,
-            "anthropic-version": "2023-06-01",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            result = json.loads(r.read())
-        return result.get("content", [{}])[0].get("text", "").strip()
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        print(f"  AI 코멘트 실패 ({e.code}): {body[:200]}")
-        return None
-    except Exception as e:
-        print(f"  AI 코멘트 실패: {e}")
-        return None
+# ── 인도 증시 뉴스 헤드라인 수집 (구글 뉴스 RSS) ──
+def fetch_news_headlines(max_items=3):
+    import xml.etree.ElementTree as ET
+    import re
+    EXCLUDE = ['한국 증시', '한국이 인도', '인도 제치', '코스피', '코스닥', '삼성전자']
+    urls = [
+        'https://news.google.com/rss/search?q=인도+증시&hl=ko&gl=KR&ceid=KR:ko',
+        'https://news.google.com/rss/search?q=NIFTY+인도+주식&hl=ko&gl=KR&ceid=KR:ko',
+    ]
+    titles = []
+    for url in urls:
+        if len(titles) >= max_items:
+            break
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                xml = r.read()
+            root = ET.fromstring(xml)
+            for item in root.iter('item'):
+                t = item.findtext('title') or ''
+                t = re.sub(r'\s*-\s*\S+$', '', t).strip()
+                if not t or any(kw in t for kw in EXCLUDE):
+                    continue
+                if t not in titles:
+                    titles.append(t)
+                if len(titles) >= max_items:
+                    break
+        except Exception as e:
+            print(f"  뉴스 수집 실패: {e}")
+    return titles
 
 
 # ── 종합신호 점수 계산 (대시보드 로직 동일) ──
-def calc_scorecard(data):
+def calc_scorecard(data, news_titles=None):
     score = 0
     max_score = 0
 
@@ -282,6 +273,11 @@ def calc_scorecard(data):
     parts.append(inr_txt)
     if crude_txt: parts.append(crude_txt)
     desc = ", ".join(parts) + f". {label} 판단 — {trend_comment}"
+
+    # 뉴스 헤드라인 추가
+    if news_titles:
+        news_str = " / ".join(news_titles)
+        desc += f"\n📰 주요 뉴스: {news_str}"
 
     return pct, label, emoji, desc
 
@@ -366,28 +362,23 @@ def main():
     data = fetch_market_data()
     print(f"NIFTY: {data['current']:,} ({data['pct']:+}%) | RSI: {data['rsi']} | 이평: {data['ma_signal']}")
 
-    # 종합신호 계산
-    pct_score, sc_label, sc_emoji, sc_desc = calc_scorecard(data)
+    print("뉴스 수집 중...")
+    news_titles = fetch_news_headlines(max_items=3)
+    print(f"뉴스 {len(news_titles)}건: {news_titles}")
+
+    # 종합신호 계산 (뉴스 포함)
+    pct_score, sc_label, sc_emoji, sc_desc = calc_scorecard(data, news_titles)
     pct_str = f"+{data['pct']:.2f}" if data['pct'] >= 0 else f"{data['pct']:.2f}"
 
     # ① 시황 알림 (실행마다 1회)
     if not already_sent(state, "ai_comment"):
-        print("AI 코멘트 생성 중...")
-        comment = generate_ai_comment(data, anthropic_key)
-        if comment:
-            msg = (f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n"
-                   f"{comment}\n\n"
-                   f"━━━━━━━━━━━━\n"
-                   f"종합신호: {sc_emoji} {sc_label} ({pct_score}점)\n"
-                   f"{sc_desc}")
-        else:
-            msg = (f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n"
-                   f"NIFTY 50: {data['current']:,} ({pct_str}%)\n"
-                   f"이평선: {data['ma_signal']} | RSI: {data['rsi']}\n"
-                   f"India VIX: {data['india_vix'] or 'N/A'} | USD/INR: {data['usdinr'] or 'N/A'}\n\n"
-                   f"━━━━━━━━━━━━\n"
-                   f"종합신호: {sc_emoji} {sc_label} ({pct_score}점)\n"
-                   f"{sc_desc}")
+        msg = (f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n"
+               f"NIFTY 50: {data['current']:,} ({pct_str}%)\n"
+               f"이평선: {data['ma_signal']} | RSI: {data['rsi']}\n"
+               f"India VIX: {data['india_vix'] or 'N/A'} | USD/INR: {data['usdinr'] or 'N/A'}\n\n"
+               f"━━━━━━━━━━━━\n"
+               f"종합신호: {sc_emoji} {sc_label} ({pct_score}점)\n"
+               f"{sc_desc}")
         kakao_send(access_token, msg)
         mark_sent(state, "ai_comment")
         save_state(state)
