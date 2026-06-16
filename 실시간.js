@@ -382,6 +382,66 @@
     }).join('');
   }
 
+  // ── 한국어 뉴스 키워드로 뉴스 배지 자동 분류 (API 키 불필요) ──
+  function updateNewsBadgesFromKorean() {
+    const items = window.__majorNewsItems || [];
+    if (!items.length) return;
+    const all = items.map(n => (n.ko || n.title || '')).join(' ');
+
+    function ko(id, gKw, rKw, gT, rT, nT) {
+      const isG = gKw.some(k => all.includes(k));
+      const isR = rKw.some(k => all.includes(k));
+      const cls  = isG && !isR ? 'badge-g' : isR && !isG ? 'badge-r' : 'badge-y';
+      const text = isG && !isR ? gT : isR && !isG ? rT : nT;
+      const el = document.getElementById(id);
+      if (el) { el.textContent = text; el.className = 'badge ' + cls; }
+    }
+
+    ko('badge-fii',
+      ['순매수','외국인 매수','자금 유입','외국인 사들','FII 매수'],
+      ['순매도','외국인 매도','자금 유출','외국인 팔','FII 매도','자금 이탈'],
+      '외국인 순매수', '외국인 순매도', '외국인 혼조');
+
+    ko('badge-rbi',
+      ['금리 인하','완화','기준금리 내','RBI 인하','인하 기대'],
+      ['금리 인상','긴축','기준금리 올','RBI 인상','인상 우려'],
+      'RBI 완화(호재)', 'RBI 긴축(악재)', 'RBI 정책 관망');
+
+    ko('badge-cpi',
+      ['물가 안정','인플레 완화','물가 하락','물가 둔화','CPI 하락'],
+      ['물가 상승','인플레 급등','물가 급등','CPI 상승','인플레 우려'],
+      '물가 안정', '물가 상승 부담', '물가 혼조');
+
+    ko('badge-gdp',
+      ['GDP 성장','경제성장','성장률 상승','경기 호조','성장 가속'],
+      ['GDP 둔화','성장 둔화','경기 침체','성장률 하락','경기 부진'],
+      'GDP 성장 호조', 'GDP 성장 부진', 'GDP 혼조');
+
+    ko('badge-fed',
+      ['연준 인하','금리 인하','파월 완화','Fed 완화','연준 완화'],
+      ['연준 인상','연준 긴축','파월 매파','Fed 긴축','금리 동결 우려'],
+      '연준 완화(호재)', '연준 긴축(악재)', '연준 불확실');
+
+    ko('badge-trade',
+      ['무역 협상','관세 완화','무역 합의','미-인도 협정','수출 증가'],
+      ['관세 부과','무역 갈등','무역 제재','수출 감소','관세 위협'],
+      '무역 호조', '무역 리스크', '무역 주시');
+
+    ko('badge-geo',
+      ['지정학 완화','중동 평화','리스크 해소','긴장 완화','분쟁 해소'],
+      ['지정학 리스크','중동 긴장','전쟁','분쟁 확대','지정학 위기'],
+      '지정학 안정', '지정학 리스크', '지정학 중립');
+
+    const note = document.getElementById('news-live-note');
+    if (note) note.textContent = '✓ 최신 뉴스 기반 자동 분류 (API 키 불필요)';
+
+    // 배지 갱신 후 종합신호 재계산
+    if (typeof recalcScorecard === 'function') recalcScorecard();
+    if (typeof applyAnalysis === 'function' && typeof ruleBasedAnalysis === 'function' && typeof _liveData !== 'undefined') {
+      if (!getAnthropicKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
+    }
+  }
+
   // ── 매크로 신호 섹션에 뉴스 이슈 리스트 렌더링 ──
   function renderMacroNews() {
     const box = document.getElementById('macro-news-list');
@@ -425,6 +485,9 @@
 
     // 매크로 신호 섹션 이슈 리스트 업데이트
     try { renderMacroNews(); } catch (e) {}
+
+    // 한국어 뉴스로 뉴스 배지 자동 분류 (API 키 불필요)
+    try { updateNewsBadgesFromKorean(); } catch (e) {}
 
     // 기술지표 + AI 차트분석 (뉴스 이슈 반영)
     try {

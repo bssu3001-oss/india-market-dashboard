@@ -215,10 +215,14 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
     <div class="signal-row"><span class="signal-name">공포지수 VIX<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(미국)</span></span><span class="badge badge-b" id="badge-vix">로딩 중...</span></div>
     <div class="signal-row"><span class="signal-name">브렌트유<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(인도 수입 부담)</span></span><span class="badge badge-b" id="badge-crude">로딩 중...</span></div>
     <div class="signal-row"><span class="signal-name">중국 증시<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(FXI — 인도 대안 신흥국)</span></span><span class="badge badge-b" id="badge-china">로딩 중...</span></div>
-    <div style="margin-top:12px;border-top:0.5px solid var(--border);padding-top:10px;">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">📋 인도 시장 주요 이슈 <span style="font-size:10px;font-weight:400;color:var(--text3);">— 실시간 뉴스 요약</span></div>
-      <div id="macro-news-list"><div style="font-size:12px;color:var(--text3);">뉴스 불러오는 중…</div></div>
-    </div>
+    <div class="signal-row"><span class="signal-name">외국인 자금 흐름<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-fii">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">RBI 금리<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-rbi">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">인도 물가(CPI)<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-cpi">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">인도 GDP<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-gdp">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">미국 연준 금리<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-fed">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">미-인도 무역<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-trade">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">지정학 리스크<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-geo">로딩 중...</span></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text3);" id="news-live-note">* 뉴스 헤드라인 기반 자동 분류</div>
   </div>
 
   <hr class="divider">
@@ -569,10 +573,12 @@ function recalcScorecard() {
   }
   const techIds  = ['badge-rsi','badge-ma','badge-mom','badge-vol','badge-pos'];
   const macroIds = ['badge-inda','badge-usdinr','badge-dxy','badge-eem','badge-indiavix','badge-vix','badge-crude','badge-china'];
+  const newsIds  = ['badge-fii','badge-rbi','badge-cpi','badge-gdp','badge-fed','badge-trade','badge-geo'];
   const tS = techIds.reduce((s,id)=>s+bv(id)*1.5,0);
   const mS = macroIds.reduce((s,id)=>s+bv(id)*1.0,0);
-  const total = tS+mS;
-  const max = techIds.length*1.5+macroIds.length*1.0;
+  const nS = newsIds.reduce((s,id)=>s+bv(id)*0.8,0);
+  const total = tS+mS+nS;
+  const max = techIds.length*1.5+macroIds.length*1.0+newsIds.length*0.8;
   const pct = Math.max(0,Math.min(100,Math.round((total+max)/(2*max)*100)));
   let label,color,emoji;
   if (total>=max*0.5)       {label='강매수';   color='#2d6a0a';emoji='🔥';}
@@ -585,8 +591,7 @@ function recalcScorecard() {
   document.getElementById('sc-bar').style.width=pct+'%'; document.getElementById('sc-bar').style.background=color;
   document.getElementById('sc-tech').textContent=(tS>=0?'+':'')+tS.toFixed(1); document.getElementById('sc-tech').style.color=color;
   document.getElementById('sc-macro').textContent=(mS>=0?'+':'')+mS.toFixed(1); document.getElementById('sc-macro').style.color=color;
-  const newsCount = (window.__majorNewsItems||[]).length;
-  document.getElementById('sc-news').textContent=newsCount ? '뉴스 '+newsCount+'건' : '--'; document.getElementById('sc-news').style.color='var(--text3)';
+  document.getElementById('sc-news').textContent=(nS>=0?'+':'')+nS.toFixed(1); document.getElementById('sc-news').style.color=color;
 }
 
 function ruleBasedAnalysis(liveData) {
@@ -623,10 +628,10 @@ function ruleBasedAnalysis(liveData) {
   const topTitles = newsItems.slice(0,5).map(n => cleanTitle(n.ko || n.title)).filter(Boolean);
   const hasNews = topTitles.length > 0;
 
-  // 가격 기반 매크로 배지로 시장 분위기 파악
-  const priceMacroIds = ['badge-inda','badge-eem','badge-dxy','badge-indiavix','badge-vix','badge-crude','badge-china'];
+  // 가격 배지 + 뉴스 배지 전체로 시장 분위기 파악
+  const allMacroIds = ['badge-inda','badge-eem','badge-dxy','badge-indiavix','badge-vix','badge-crude','badge-china','badge-fii','badge-rbi','badge-cpi','badge-gdp','badge-fed','badge-trade','badge-geo'];
   let greenCount = 0, redCount = 0;
-  priceMacroIds.forEach(id => {
+  allMacroIds.forEach(id => {
     const cl = badgeClass(id);
     if (cl === 'badge-g') greenCount++;
     else if (cl === 'badge-r') redCount++;
