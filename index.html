@@ -1,871 +1,704 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>인도 주식시장 대시보드</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0f0f0f;
-      --surface: #1a1a1a;
-      --surface2: #242424;
-      --border: #2e2e2e;
-      --text: #e8e8e8;
-      --text-muted: #888;
-      --green: #22c55e;
-      --red: #ef4444;
-      --accent: #f59e0b;
-      --blue: #3b82f6;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px;
-      min-height: 100vh;
-    }
-
-    #app { max-width: 480px; margin: 0 auto; padding: 12px; }
-
-    .header {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .header h1 { font-size: 18px; font-weight: 700; }
-
-    .header-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .header-btns { display: flex; gap: 6px; }
-
-    .btn-sm {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 4px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    .btn-sm:active { opacity: 0.7; }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 10px;
-    }
-
-    .card-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 10px;
-    }
-
-    .index-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-    .index-card {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-    }
-
-    .index-name { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
-    .index-price { font-size: 20px; font-weight: 700; }
-    .index-change { font-size: 13px; font-weight: 600; margin-top: 2px; }
-    .index-meta { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
-
-    .up { color: var(--green); }
-    .down { color: var(--red); }
-    .neutral { color: var(--text-muted); }
-
-    .signal-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .signal-buy { background: #16342a; color: var(--green); }
-    .signal-sell { background: #341616; color: var(--red); }
-    .signal-wait { background: #2a2a16; color: var(--accent); }
-
-    .score-bar-wrap { margin: 8px 0; }
-    .score-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
-    .score-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-    .score-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
-
-    .score-breakdown { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
-    .score-item { background: var(--surface2); border-radius: 8px; padding: 8px; text-align: center; }
-    .score-item-label { font-size: 10px; color: var(--text-muted); }
-    .score-item-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
-
-    .indicator-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .indicator-row:last-child { border-bottom: none; }
-    .indicator-label { color: var(--text-muted); font-size: 13px; }
-    .indicator-value { font-size: 13px; font-weight: 600; text-align: right; }
-
-    .indicator-badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 10px;
-      margin-left: 6px;
-    }
-    .badge-green { background: #16342a; color: var(--green); }
-    .badge-red { background: #341616; color: var(--red); }
-    .badge-yellow { background: #2a2a16; color: var(--accent); }
-
-    .modal {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.85);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100;
-      padding: 20px;
-    }
-
-    .modal-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      width: 100%;
-      max-width: 360px;
-    }
-
-    .modal-box h2 { font-size: 16px; margin-bottom: 4px; }
-    .modal-box .modal-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
-    .modal-box label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; margin-top: 12px; }
-
-    .modal-box input {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      outline: none;
-    }
-
-    .modal-box input:focus { border-color: var(--accent); }
-
-    .modal-box .btn-primary {
-      width: 100%;
-      margin-top: 16px;
-      background: var(--accent);
-      color: #000;
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .chat-messages {
-      max-height: 240px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-
-    .chat-msg {
-      padding: 8px 12px;
-      border-radius: 10px;
-      margin-bottom: 6px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .chat-msg.user { background: var(--surface2); text-align: right; }
-    .chat-msg.ai { background: #1a2a1a; border: 1px solid #2e4a2e; }
-
-    .chat-input-row { display: flex; gap: 6px; }
-
-    .chat-input-row input {
-      flex: 1;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      outline: none;
-    }
-
-    .chat-input-row input:focus { border-color: var(--blue); }
-
-    .chat-input-row button {
-      background: var(--blue);
-      color: #fff;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    #loading { text-align: center; padding: 60px 20px; }
-
-    .spinner {
-      width: 36px; height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 12px;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    #error-msg {
-      background: #341616;
-      border: 1px solid #ef4444;
-      color: var(--red);
-      padding: 14px;
-      border-radius: 10px;
-      margin-top: 16px;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .hidden { display: none !important; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>인도 시장 대시보드</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f5f7; --card-bg: #ffffff; --text: #1d1d1f; --text2: #6e6e73; --text3: #aeaeb2;
+  --border: rgba(0,0,0,0.1); --up: #2d8a4e; --down: #c0392b;
+  --warn-bg: #fff8e1; --warn-text: #BA7517;
+  --buy-bg: #f0faf0; --buy-text: #2d6a0a;
+  --sell-bg: #fff0f0; --sell-text: #9b2020;
+  --badge-r-bg: #fde8e8; --badge-r: #c0392b;
+  --badge-g-bg: #e8fde8; --badge-g: #2d6a0a;
+  --badge-y-bg: #fdf6e8; --badge-y: #BA7517;
+  --badge-b-bg: #e8f0fe; --badge-b: #1565c0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e; --card-bg: #2c2c2e; --text: #f2f2f7; --text2: #aeaeb2; --text3: #636366;
+    --border: rgba(255,255,255,0.1); --up: #4cd964; --down: #ff453a;
+    --warn-bg: #2a2200; --warn-text: #ffd60a;
+    --buy-bg: #0d2200; --buy-text: #4cd964;
+    --sell-bg: #2a0000; --sell-text: #ff453a;
+    --badge-r-bg: #2a0a0a; --badge-r: #ff6b6b;
+    --badge-g-bg: #0a1a0a; --badge-g: #6fcf97;
+    --badge-y-bg: #1a1200; --badge-y: #f2c94c;
+    --badge-b-bg: #001a2a; --badge-b: #56ccf2;
+  }
+}
+body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.container { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+.header { margin-bottom: 24px; }
+.header h1 { font-size: 22px; font-weight: 700; }
+.header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.section-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.card { background: var(--card-bg); border-radius: 16px; padding: 16px; margin-bottom: 16px; border: 0.5px solid var(--border); }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+.main-header { background: var(--card-bg); border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 0.5px solid var(--border); }
+.idx-name { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+.idx-price { font-size: 36px; font-weight: 700; letter-spacing: -1px; }
+.idx-change { font-size: 15px; font-weight: 500; margin-top: 4px; }
+.ohlc-row { display: flex; gap: 0; margin-top: 12px; border-top: 0.5px solid var(--border); padding-top: 12px; }
+.ohlc-item { flex: 1; text-align: center; }
+.ohlc-label { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.ohlc-val { font-size: 13px; font-weight: 600; }
+.sub-header { background: var(--card-bg); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; border: 0.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.sub-left .s-name { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.sub-left .s-price { font-size: 22px; font-weight: 700; }
+.sub-left .s-change { font-size: 13px; font-weight: 500; margin-top: 2px; }
+.sub-right { text-align: right; font-size: 12px; color: var(--text3); line-height: 1.8; }
+.period-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.period-tab { flex: 1; text-align: center; font-size: 12px; font-weight: 500; padding: 7px 0; border-radius: 8px; border: 0.5px solid var(--border); background: var(--bg); color: var(--text2); cursor: pointer; }
+.period-tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.chart-wrap { height: 230px; margin-bottom: 8px; }
+.signal-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+.signal-row:last-child { border-bottom: none; }
+.signal-name { font-size: 13px; color: var(--text2); flex: 1; margin-right: 8px; }
+.badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 8px; white-space: nowrap; }
+.badge-r { background: var(--badge-r-bg); color: var(--badge-r); }
+.badge-g { background: var(--badge-g-bg); color: var(--badge-g); }
+.badge-y { background: var(--badge-y-bg); color: var(--badge-y); }
+.badge-b { background: var(--badge-b-bg); color: var(--badge-b); }
+.action { border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; }
+.action-hold { background: var(--warn-bg); border-left: 3px solid var(--warn-text); }
+.action-buy  { background: var(--buy-bg);  border-left: 3px solid var(--buy-text); }
+.action-sell { background: var(--sell-bg); border-left: 3px solid var(--sell-text); }
+.action-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.action-hold .action-title { color: var(--warn-text); }
+.action-buy  .action-title { color: var(--buy-text); }
+.action-sell .action-title { color: var(--sell-text); }
+.action-desc { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 20px 0; }
+.up { color: var(--up); } .down { color: var(--down); }
+.input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.input-row input { flex: 1; font-size: 13px; padding: 10px 12px; border: 0.5px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); outline: none; }
+.input-row input:focus { border-color: #0071e3; }
+.btn { font-size: 13px; padding: 10px 16px; border: 0.5px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text); cursor: pointer; white-space: nowrap; font-weight: 500; }
+.quick-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.quick-btn { font-size: 11px; padding: 6px 11px; }
+.ai-response { font-size: 13px; color: var(--text); line-height: 1.8; padding: 14px; background: var(--bg); border-radius: 10px; min-height: 60px; white-space: pre-wrap; }
+.footer { font-size: 11px; color: var(--text3); text-align: center; margin-top: 20px; }
+</style>
 </head>
 <body>
-  <div id="app">
-    <header class="header">
+<div class="container">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div class="header" style="margin-bottom:0;">
       <h1>🇮🇳 인도 시장 대시보드</h1>
-      <div class="header-meta">
-        <span id="last-updated">--</span>
-        <div class="header-btns">
-          <button class="btn-sm" onclick="loadData(true)">🔄 새로고침</button>
-          <button class="btn-sm" onclick="showModal()">⚙️ 설정</button>
-        </div>
-      </div>
-    </header>
-
-    <div id="api-modal" class="modal hidden">
-      <div class="modal-box">
-        <h2>API 키 설정</h2>
-        <p class="modal-sub">키는 이 기기에만 저장됩니다.</p>
-        <label>TwelveData API 키 <span style="color:var(--red)">*</span></label>
-        <input type="text" id="td-key-input" placeholder="your_twelvedata_api_key" autocomplete="off" />
-        <label>Anthropic API 키 (AI 채팅용, 선택)</label>
-        <input type="text" id="anthropic-key-input" placeholder="sk-ant-..." autocomplete="off" />
-        <button class="btn-primary" onclick="saveKeys()">저장 후 시작</button>
-      </div>
+      <p>NIFTY 50 · SENSEX 기반 매수 타이밍 분석</p>
     </div>
-
-    <div id="dashboard" class="hidden">
-      <section id="indices-section"></section>
-      <section id="signal-section"></section>
-      <section id="technical-section"></section>
-      <section id="macro-section"></section>
-      <section id="currency-section"></section>
-      <section id="chat-section">
-        <div class="card">
-          <div class="card-title">AI 분석 채팅</div>
-          <div id="chat-messages" class="chat-messages">
-            <div class="chat-msg ai">안녕하세요! 인도 시장 현황에 대해 질문해 주세요.</div>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chat-input" placeholder="예: 지금 매수 타이밍인가요?" onkeydown="if(event.key==='Enter')sendChat()" />
-            <button onclick="sendChat()">전송</button>
-          </div>
-          <div id="chat-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none"></div>
-        </div>
-      </section>
-    </div>
-
-    <div id="loading" class="hidden">
-      <div class="spinner"></div>
-      <p style="color:var(--text-muted);font-size:13px">데이터 불러오는 중...</p>
-    </div>
-
-    <div id="error-msg" class="hidden"></div>
+    <button onclick="location.reload(true)" style="margin-top:4px;padding:7px 18px;border-radius:20px;border:0.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;flex-shrink:0;">🔄 새로고침</button>
   </div>
 
-  <script>
-    // ─── API Key Management ───────────────────────────────────────────────────
-
-    const KEYS = {
-      td: () => localStorage.getItem('td_api_key'),
-      anthropic: () => localStorage.getItem('anthropic_api_key'),
-    };
-
-    function saveKeys() {
-      const tdKey = document.getElementById('td-key-input').value.trim();
-      const anthropicKey = document.getElementById('anthropic-key-input').value.trim();
-      if (!tdKey) { alert('TwelveData API 키를 입력해주세요.'); return; }
-      localStorage.setItem('td_api_key', tdKey);
-      if (anthropicKey) localStorage.setItem('anthropic_api_key', anthropicKey);
-      hideModal();
-      loadData();
-    }
-
-    function showModal() {
-      const tdKey = KEYS.td() || '';
-      const anthropicKey = KEYS.anthropic() || '';
-      document.getElementById('td-key-input').value = tdKey;
-      document.getElementById('anthropic-key-input').value = anthropicKey;
-      document.getElementById('api-modal').classList.remove('hidden');
-    }
-
-    function hideModal() {
-      document.getElementById('api-modal').classList.add('hidden');
-    }
-
-    function showLoading() {
-      document.getElementById('loading').classList.remove('hidden');
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('error-msg').classList.add('hidden');
-    }
-
-    function showDashboard() {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('dashboard').classList.remove('hidden');
-    }
-
-    function showError(msg) {
-      document.getElementById('loading').classList.add('hidden');
-      const el = document.getElementById('error-msg');
-      el.innerHTML = '';
-      // split on <br> and append text nodes with line breaks
-      msg.split('<br>').forEach((part, i) => {
-        if (i > 0) el.appendChild(document.createElement('br'));
-        el.appendChild(document.createTextNode(part));
-      });
-      el.classList.remove('hidden');
-    }
-
-    // ─── Formatting Helpers ──────────────────────────────────────────────────
-
-    function fmt(num, decimals = 2) {
-      if (num === null || num === undefined || isNaN(num)) return '--';
-      return num.toLocaleString('ko-KR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-    }
-
-    function changeClass(val) {
-      if (val > 0) return 'up';
-      if (val < 0) return 'down';
-      return 'neutral';
-    }
-
-    function sign(val) { return val > 0 ? '+' : ''; }
-
-    // ─── TwelveData API ──────────────────────────────────────────────────────
-
-    const TD_BASE = 'https://api.twelvedata.com';
-
-    async function fetchQuotes(symbols) {
-      const key = KEYS.td();
-      const url = `${TD_BASE}/quote?symbol=${symbols.join(',')}&apikey=${key}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`TwelveData HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.status === 'error') throw new Error(data.message);
-      if (symbols.length === 1) return { [symbols[0]]: data };
-      return data;
-    }
-
-    async function fetchRSI(symbol) {
-      const key = KEYS.td();
-      const url = `${TD_BASE}/rsi?symbol=${symbol}&interval=1day&time_period=14&outputsize=1&apikey=${key}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`RSI HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.status === 'error') return null;
-      return parseFloat(data.values?.[0]?.rsi) || null;
-    }
-
-    async function fetchEMA(symbol, period) {
-      const key = KEYS.td();
-      const url = `${TD_BASE}/ema?symbol=${symbol}&interval=1day&time_period=${period}&outputsize=1&apikey=${key}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`EMA HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.status === 'error') return null;
-      return parseFloat(data.values?.[0]?.ema) || null;
-    }
-
-    // ─── Cache ───────────────────────────────────────────────────────────────
-
-    const CACHE_TTL_MS = 5 * 60 * 1000; // 5분
-
-    function saveCache(data) {
-      localStorage.setItem('dashboard_cache', JSON.stringify({ ts: Date.now(), data }));
-    }
-
-    function loadCache() {
-      try {
-        const raw = localStorage.getItem('dashboard_cache');
-        if (!raw) return null;
-        const { ts, data } = JSON.parse(raw);
-        if (Date.now() - ts < CACHE_TTL_MS) return { data, ageMs: Date.now() - ts };
-      } catch {}
-      return null;
-    }
-
-    // ─── Main Data Load ──────────────────────────────────────────────────────
-
-    let _ctx = { nifty: {}, sensex: {}, macro: {}, technical: {}, signal: {} };
-    let _isLoading = false;
-
-    async function loadData(forceRefresh = false) {
-      if (_isLoading) return;
-
-      // 캐시 확인 (강제 새로고침이 아닐 때)
-      if (!forceRefresh) {
-        const cached = loadCache();
-        if (cached) {
-          const ageMin = Math.round(cached.ageMs / 60000);
-          renderAll(cached.data);
-          document.getElementById('last-updated').textContent =
-            `캐시 (${ageMin}분 전) — 🔄 새로고침으로 갱신`;
-          showDashboard();
-          return;
-        }
-      }
-
-      _isLoading = true;
-      showLoading();
-      try {
-        // 무료 플랜: 배치 1회 호출 = 6크레딧
-        const SYMBOLS = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'DXY'];
-
-        const quotes = await fetchQuotes(SYMBOLS);
-
-        const rsi = null, ema20 = null, ema50 = null;
-
-        const q = (sym) => quotes[sym] || {};
-
-        SYMBOLS.forEach(sym => {
-          if (quotes[sym]?.status === 'error') {
-            console.warn(`Symbol ${sym} error: ${quotes[sym].message}`);
-          }
-        });
-
-        const pf = (v) => parseFloat(v) || 0;
-
-        const nifty = {
-          price: pf(q('NIFTY50').close || q('NIFTY50').price),
-          change: pf(q('NIFTY50').change),
-          changePct: pf(q('NIFTY50').percent_change),
-          open: pf(q('NIFTY50').open),
-          high: pf(q('NIFTY50').high),
-          low: pf(q('NIFTY50').low),
-          high52w: pf(q('NIFTY50').fifty_two_week?.high),
-          low52w: pf(q('NIFTY50').fifty_two_week?.low),
-        };
-
-        const sensex = {
-          price: pf(q('SENSEX').close || q('SENSEX').price),
-          change: pf(q('SENSEX').change),
-          changePct: pf(q('SENSEX').percent_change),
-          open: pf(q('SENSEX').open),
-          high: pf(q('SENSEX').high),
-          low: pf(q('SENSEX').low),
-        };
-
-        const macro = {
-          usdInr: pf(q('USD/INR').close || q('USD/INR').price),
-          usdInrChange: pf(q('USD/INR').percent_change),
-          inrKrw: pf(q('INR/KRW').close || q('INR/KRW').price),
-          inrKrwChange: pf(q('INR/KRW').percent_change),
-          gold: pf(q('XAU/USD').close || q('XAU/USD').price),
-          goldChange: pf(q('XAU/USD').percent_change),
-          dxy: pf(q('DXY').close || q('DXY').price),
-          dxyChange: pf(q('DXY').percent_change),
-          oil: 0, oilChange: 0,
-          bankNifty: 0, bankNiftyChange: 0,
-          indiaVix: 0, indiaVixChange: 0,
-        };
-
-        const technical = {
-          rsi,
-          ema20,
-          ema50,
-          currentPrice: nifty.price,
-          high52w: nifty.high52w,
-          low52w: nifty.low52w,
-          momentum1d: nifty.changePct,
-        };
-
-        const sigData = calcSignal(technical, macro);
-
-        const payload = { nifty, sensex, macro, technical, signal: sigData, fetchedAt: Date.now() };
-        saveCache(payload);
-
-        renderAll(payload);
-        document.getElementById('last-updated').textContent =
-          '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
-
-        showDashboard();
-      } catch (err) {
-        console.error(err);
-        if (err.message.includes('401') || err.message.includes('403') || err.message.includes('invalid')) {
-          showError('API 키가 올바르지 않습니다. ⚙️ 설정을 눌러 키를 다시 입력해주세요.<br><br>오류: ' + err.message);
-        } else if (err.message.includes('429')) {
-          showError('API 호출 한도를 초과했습니다. 잠시 후 🔄 새로고침 해주세요.');
-        } else {
-          showError('데이터 로드 실패: ' + err.message + '<br><br>🔄 새로고침 하거나 ⚙️ 설정에서 API 키를 확인해주세요.');
-        }
-      } finally {
-        _isLoading = false;
-      }
-    }
-
-    function renderAll({ nifty, sensex, macro, technical, signal }) {
-      _ctx = { nifty, sensex, macro, technical, signal };
-      renderIndices(nifty, sensex);
-      renderSignal(signal);
-      renderTechnical(technical);
-      renderMacro(macro);
-      renderCurrency(macro);
-    }
-
-    // ─── Render: Market Indices ──────────────────────────────────────────────
-
-    function renderIndices(nifty, sensex) {
-      document.getElementById('indices-section').innerHTML = `
-        <div class="card">
-          <div class="card-title">시장 지수</div>
-          <div class="index-grid">
-            <div class="index-card">
-              <div class="index-name">NIFTY 50 <span style="font-size:10px">(NSE)</span></div>
-              <div class="index-price">${fmt(nifty.price, 2)}</div>
-              <div class="index-change ${changeClass(nifty.changePct)}">
-                ${sign(nifty.changePct)}${fmt(nifty.change, 2)} (${sign(nifty.changePct)}${fmt(nifty.changePct, 2)}%)
-              </div>
-              <div class="index-meta">
-                시가: ${fmt(nifty.open)}<br>
-                고: ${fmt(nifty.high)} / 저: ${fmt(nifty.low)}
-              </div>
-            </div>
-            <div class="index-card">
-              <div class="index-name">SENSEX <span style="font-size:10px">(BSE)</span></div>
-              <div class="index-price">${fmt(sensex.price, 2)}</div>
-              <div class="index-change ${changeClass(sensex.changePct)}">
-                ${sign(sensex.changePct)}${fmt(sensex.change, 2)} (${sign(sensex.changePct)}${fmt(sensex.changePct, 2)}%)
-              </div>
-              <div class="index-meta">
-                시가: ${fmt(sensex.open)}<br>
-                고: ${fmt(sensex.high)} / 저: ${fmt(sensex.low)}
-              </div>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // ─── Signal Calculation ──────────────────────────────────────────────────
-
-    function calcSignal(technical, macro) {
-      let techScore = 0;
-      let macroScore = 0;
-
-      if (technical.rsi) {
-        if (technical.rsi < 40) techScore += 1.5;
-        else if (technical.rsi > 65) techScore -= 1.5;
-        else techScore += 0.5;
-      }
-
-      if (technical.ema20 && technical.ema50 && technical.currentPrice) {
-        if (technical.currentPrice > technical.ema20 && technical.ema20 > technical.ema50) techScore += 1.5;
-        else if (technical.currentPrice < technical.ema20) techScore -= 1.0;
-      }
-
-      if (technical.momentum1d > 0.5) techScore += 0.5;
-      else if (technical.momentum1d < -0.5) techScore -= 0.5;
-
-      if (macro.indiaVix) {
-        if (macro.indiaVix < 15) macroScore += 1.0;
-        else if (macro.indiaVix > 20) macroScore -= 1.0;
-      }
-
-      if (macro.usdInrChange < -0.3) macroScore += 1.0;
-      else if (macro.usdInrChange > 0.5) macroScore -= 1.0;
-
-      if (macro.dxyChange < 0) macroScore += 0.5;
-      else macroScore -= 0.3;
-
-      const raw = techScore + macroScore;
-      const score = Math.max(0, Math.min(100, Math.round((raw + 6) / 12 * 100)));
-
-      let judgment, badgeClass;
-      if (score >= 60) { judgment = '매수'; badgeClass = 'signal-buy'; }
-      else if (score <= 40) { judgment = '매도'; badgeClass = 'signal-sell'; }
-      else { judgment = '관망'; badgeClass = 'signal-wait'; }
-
-      return { score, judgment, badgeClass, techScore, macroScore };
-    }
-
-    // ─── Render: Signal ──────────────────────────────────────────────────────
-
-    function renderSignal(sig) {
-      const barColor = sig.score >= 60 ? 'var(--green)' : sig.score <= 40 ? 'var(--red)' : 'var(--accent)';
-      document.getElementById('signal-section').innerHTML = `
-        <div class="card">
-          <div class="card-title">매수 신호 종합</div>
-          <span class="signal-badge ${sig.badgeClass}">${sig.judgment}</span>
-          <div class="score-bar-wrap">
-            <div class="score-label">
-              <span>신호 강도</span><span>${sig.score}/100</span>
-            </div>
-            <div class="score-bar">
-              <div class="score-fill" style="width:${sig.score}%;background:${barColor}"></div>
-            </div>
-          </div>
-          <div class="score-breakdown">
-            <div class="score-item">
-              <div class="score-item-label">기술적</div>
-              <div class="score-item-val ${sig.techScore >= 0 ? 'up' : 'down'}">${sig.techScore > 0 ? '+' : ''}${sig.techScore.toFixed(1)}</div>
-            </div>
-            <div class="score-item">
-              <div class="score-item-label">거시</div>
-              <div class="score-item-val ${sig.macroScore >= 0 ? 'up' : 'down'}">${sig.macroScore > 0 ? '+' : ''}${sig.macroScore.toFixed(1)}</div>
-            </div>
-            <div class="score-item">
-              <div class="score-item-label">뉴스</div>
-              <div class="score-item-val neutral" style="font-size:11px">준비중</div>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // ─── Render: Technical ───────────────────────────────────────────────────
-
-    function renderTechnical(t) {
-      const rsiLabel = t.rsi ? (t.rsi > 70 ? '과매수' : t.rsi < 30 ? '과매도' : '중립') : '--';
-      const rsiBadge = t.rsi ? (t.rsi > 70 ? 'badge-red' : t.rsi < 30 ? 'badge-green' : 'badge-yellow') : '';
-
-      let maLabel = '--', maBadge = 'badge-yellow';
-      if (t.ema20 && t.ema50 && t.currentPrice) {
-        if (t.currentPrice > t.ema20 && t.ema20 > t.ema50) { maLabel = '상승 배열'; maBadge = 'badge-green'; }
-        else if (t.currentPrice < t.ema20 && t.ema20 < t.ema50) { maLabel = '하락 배열'; maBadge = 'badge-red'; }
-        else { maLabel = '혼조'; maBadge = 'badge-yellow'; }
-      }
-
-      let posText = '--', posLabel = '--', posBadge = 'badge-yellow';
-      if (t.high52w && t.currentPrice) {
-        const belowHigh = (t.high52w - t.currentPrice) / t.high52w * 100;
-        posText = `고점 대비 -${fmt(belowHigh, 1)}%`;
-        if (belowHigh < 5) { posLabel = '고점 근접'; posBadge = 'badge-red'; }
-        else if (belowHigh < 15) { posLabel = '중간'; posBadge = 'badge-yellow'; }
-        else { posLabel = '저점 근접'; posBadge = 'badge-green'; }
-      }
-
-      const momBadge = t.momentum1d > 0 ? 'badge-green' : t.momentum1d < 0 ? 'badge-red' : 'badge-yellow';
-
-      document.getElementById('technical-section').innerHTML = `
-        <div class="card">
-          <div class="card-title">기술적 지표 (Nifty 50)</div>
-          <div class="indicator-row">
-            <span class="indicator-label">RSI (14일)</span>
-            <span class="indicator-value">
-              ${t.rsi ? fmt(t.rsi, 1) : '--'}
-              ${t.rsi ? `<span class="indicator-badge ${rsiBadge}">${rsiLabel}</span>` : ''}
-            </span>
-          </div>
-          <div class="indicator-row">
-            <span class="indicator-label">EMA 20 / 50</span>
-            <span class="indicator-value">
-              ${t.ema20 ? fmt(t.ema20, 0) : '--'} / ${t.ema50 ? fmt(t.ema50, 0) : '--'}
-              <span class="indicator-badge ${maBadge}">${maLabel}</span>
-            </span>
-          </div>
-          <div class="indicator-row">
-            <span class="indicator-label">52주 위치</span>
-            <span class="indicator-value">
-              ${posText}
-              <span class="indicator-badge ${posBadge}">${posLabel}</span>
-            </span>
-          </div>
-          <div class="indicator-row">
-            <span class="indicator-label">단기 모멘텀</span>
-            <span class="indicator-value ${changeClass(t.momentum1d)}">
-              ${sign(t.momentum1d)}${fmt(t.momentum1d, 2)}%
-              <span class="indicator-badge ${momBadge}">${t.momentum1d > 0 ? '상승' : t.momentum1d < 0 ? '하락' : '보합'}</span>
-            </span>
-          </div>
-        </div>`;
-    }
-
-    // ─── Render: Macro ───────────────────────────────────────────────────────
-
-    function renderMacro(m) {
-      const rows = [
-        { label: 'USD/INR', val: fmt(m.usdInr, 2), change: m.usdInrChange },
-        { label: 'DXY (달러 지수)', val: fmt(m.dxy, 2), change: m.dxyChange },
-        { label: '금 ($/oz)', val: fmt(m.gold, 2), change: m.goldChange },
-      ];
-
-      document.getElementById('macro-section').innerHTML = `
-        <div class="card">
-          <div class="card-title">거시경제 지표</div>
-          ${rows.map(r => `
-            <div class="indicator-row">
-              <span class="indicator-label">${r.label}</span>
-              <span class="indicator-value">
-                ${r.val}
-                <span class="${changeClass(r.change)}" style="font-size:12px;font-weight:400">
-                  ${sign(r.change)}${fmt(r.change, 2)}%
-                </span>
-              </span>
-            </div>`).join('')}
-        </div>`;
-    }
-
-    // ─── Render: Currency ────────────────────────────────────────────────────
-
-    function renderCurrency(m) {
-      const trend = m.usdInrChange > 0.5 ? '루피 급락' : m.usdInrChange < -0.5 ? '루피 강세' : '루피 안정';
-      const trendClass = m.usdInrChange > 0.5 ? 'down' : m.usdInrChange < -0.5 ? 'up' : 'neutral';
-
-      document.getElementById('currency-section').innerHTML = `
-        <div class="card">
-          <div class="card-title">환율 분석</div>
-          <div class="indicator-row">
-            <span class="indicator-label">루피 상태</span>
-            <span class="indicator-value ${trendClass}" style="font-weight:700">${trend}</span>
-          </div>
-          <div class="indicator-row">
-            <span class="indicator-label">USD/INR</span>
-            <span class="indicator-value">
-              ₹${fmt(m.usdInr, 2)}
-              <span class="${changeClass(m.usdInrChange)}" style="font-size:12px;font-weight:400">
-                ${sign(m.usdInrChange)}${fmt(m.usdInrChange, 2)}%
-              </span>
-            </span>
-          </div>
-          <div class="indicator-row">
-            <span class="indicator-label">INR/KRW</span>
-            <span class="indicator-value">
-              ₩${fmt(m.inrKrw, 4)}
-              <span class="${changeClass(m.inrKrwChange)}" style="font-size:12px;font-weight:400">
-                ${sign(m.inrKrwChange)}${fmt(m.inrKrwChange, 2)}%
-              </span>
-            </span>
-          </div>
-        </div>`;
-    }
-
-    // ─── AI Chat ─────────────────────────────────────────────────────────────
-
-    function buildContext() {
-      const { nifty, sensex, macro, technical, signal } = _ctx;
-      return `[현재 인도 시장 데이터 - ${new Date().toLocaleString('ko-KR')}]
-Nifty 50: ${fmt(nifty.price)} (${sign(nifty.changePct)}${fmt(nifty.changePct)}%)
-Sensex: ${fmt(sensex.price)} (${sign(sensex.changePct)}${fmt(sensex.changePct)}%)
-RSI(14): ${technical.rsi ? fmt(technical.rsi, 1) : 'N/A'}
-EMA20/50: ${technical.ema20 ? fmt(technical.ema20, 0) : 'N/A'} / ${technical.ema50 ? fmt(technical.ema50, 0) : 'N/A'}
-USD/INR: ₹${fmt(macro.usdInr, 2)} (${sign(macro.usdInrChange)}${fmt(macro.usdInrChange, 2)}%)
-India VIX: ${fmt(macro.indiaVix, 2)}
-DXY: ${fmt(macro.dxy, 2)} (${sign(macro.dxyChange)}${fmt(macro.dxyChange, 2)}%)
-금: $${fmt(macro.gold, 2)} (${sign(macro.goldChange)}${fmt(macro.goldChange, 2)}%)
-Brent 원유: $${fmt(macro.oil, 2)} (${sign(macro.oilChange)}${fmt(macro.oilChange, 2)}%)
-Nifty Bank: ${fmt(macro.bankNifty, 0)} (${sign(macro.bankNiftyChange)}${fmt(macro.bankNiftyChange, 2)}%)
-매수신호: ${signal.judgment} (${signal.score}/100) | 기술적 ${signal.techScore > 0 ? '+' : ''}${signal.techScore?.toFixed(1)} | 거시 ${signal.macroScore > 0 ? '+' : ''}${signal.macroScore?.toFixed(1)}`;
-    }
-
-    async function sendChat() {
-      const input = document.getElementById('chat-input');
-      const question = input.value.trim();
-      if (!question) return;
-
-      const anthropicKey = KEYS.anthropic();
-      const chatErr = document.getElementById('chat-error');
-      chatErr.style.display = 'none';
-
-      if (!anthropicKey) {
-        chatErr.style.display = 'block';
-        chatErr.textContent = 'Anthropic API 키가 없습니다. ⚙️ 설정에서 키를 입력해주세요.';
-        return;
-      }
-
-      const messages = document.getElementById('chat-messages');
-      const userEl = document.createElement('div');
-      userEl.className = 'chat-msg user';
-      userEl.textContent = question;
-      messages.appendChild(userEl);
-      input.value = '';
-
-      const loadingEl = document.createElement('div');
-      loadingEl.className = 'chat-msg ai';
-      loadingEl.textContent = '분석 중...';
-      messages.appendChild(loadingEl);
-      messages.scrollTop = messages.scrollHeight;
-
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 512,
-            system: `당신은 인도 주식시장 전문 분석가입니다. 아래 실시간 시장 데이터를 바탕으로 한국어로 간결하게 답변해 주세요.\n\n${buildContext()}`,
-            messages: [{ role: 'user', content: question }],
-          }),
-        });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error?.message || `HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        loadingEl.textContent = data.content[0].text;
-      } catch (err) {
-        loadingEl.textContent = `오류: ${err.message}`;
-        loadingEl.style.color = 'var(--red)';
-      }
-
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    // ─── Init ─────────────────────────────────────────────────────────────────
-
-    function init() {
-      if (!KEYS.td()) {
-        showModal();
-      } else {
-        loadData();
+  <!-- 종합 매수 신호 -->
+  <div style="background:var(--warn-bg);border:1px solid rgba(186,117,23,0.2);border-radius:18px;padding:18px 20px;margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--warn-text);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">종합 매수 신호</div>
+        <div id="sc-emoji" style="font-size:28px;font-weight:700;color:var(--warn-text);">📌 관망</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">신호 강도</div>
+        <div id="sc-pct" style="font-size:24px;font-weight:700;color:var(--warn-text);">--점</div>
+        <div style="font-size:10px;color:var(--text3);">/ 100점</div>
+      </div>
+    </div>
+    <div style="background:rgba(0,0,0,0.08);border-radius:6px;height:8px;overflow:hidden;margin-bottom:10px;">
+      <div id="sc-bar" style="width:50%;height:100%;border-radius:6px;background:var(--warn-text);transition:width 0.6s;"></div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:11px;color:var(--text2);">
+      <span>기술적 <strong id="sc-tech" style="color:var(--warn-text);">--</strong></span>
+      <span>매크로 <strong id="sc-macro" style="color:var(--warn-text);">--</strong></span>
+      <span>뉴스 <strong id="sc-news" style="color:var(--warn-text);">--</strong></span>
+    </div>
+    <div id="sc-desc" style="margin-top:10px;font-size:12px;color:var(--text2);line-height:1.6;padding:10px 12px;background:rgba(0,0,0,0.04);border-radius:10px;">데이터 로딩 중...</div>
+  </div>
+
+  <div class="section-label">NIFTY 50 (국립증권거래소)</div>
+  <div class="main-header">
+    <div class="idx-name">NIFTY 50</div>
+    <div class="idx-price" id="live-nifty-price">--</div>
+    <div class="idx-change" id="live-nifty-change">--</div>
+    <div class="ohlc-row">
+      <div class="ohlc-item"><div class="ohlc-label">시가</div><div class="ohlc-val" id="nifty-open">--</div></div>
+      <div class="ohlc-item"><div class="ohlc-label">고가</div><div class="ohlc-val up" id="nifty-high">--</div></div>
+      <div class="ohlc-item"><div class="ohlc-label">저가</div><div class="ohlc-val down" id="nifty-low">--</div></div>
+    </div>
+  </div>
+
+  <div class="sub-header">
+    <div class="sub-left">
+      <div class="s-name">SENSEX (봄베이증권거래소)</div>
+      <div class="s-price" id="live-sensex-price">--</div>
+      <div class="s-change" id="live-sensex-change">--</div>
+    </div>
+    <div class="sub-right" id="sensex-ohlc">시가: --<br>고: -- / 저: --</div>
+  </div>
+
+  <div class="period-tabs" id="nifty-tabs">
+    <div class="period-tab active" onclick="switchPeriod('d1',this)">일</div>
+    <div class="period-tab" onclick="switchPeriod('d5',this)">5일</div>
+    <div class="period-tab" onclick="switchPeriod('d30',this)">1개월</div>
+    <div class="period-tab" onclick="switchPeriod('mo3',this)">3개월</div>
+    <div class="period-tab" onclick="switchPeriod('mo6',this)">6개월</div>
+    <div class="period-tab" onclick="switchPeriod('yr1',this)">1년</div>
+  </div>
+  <div class="card" style="padding:12px 12px 10px;">
+    <div class="chart-wrap"><canvas id="chartNIFTY"></canvas></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:-4px;margin-bottom:4px;">* INDA ETF 기준 환산 추정치 (Yahoo Finance 실시간)</div>
+  </div>
+  <div class="card" style="margin-top:-4px;">
+    <div class="card-title" style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:10px;">📊 AI 차트 분석 — NIFTY 50</div>
+    <div id="ai-chart-analysis" style="font-size:13px;line-height:2;color:var(--text);">데이터 로딩 후 분석합니다...</div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-label">주요 이벤트 일정</div>
+  <div class="card" style="margin-bottom:16px;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tbody style="line-height:2.2;">
+        <tr><td style="color:var(--text2);width:60px;">06-18</td><td>RBI 통화정책위원회 결과</td><td style="text-align:right;color:var(--warn-text);font-weight:500;">D-2</td></tr>
+        <tr><td style="color:var(--text2);">07-01</td><td>인도 GDP Q1 발표</td><td style="text-align:right;color:var(--text3);">D-15</td></tr>
+        <tr><td style="color:var(--text2);">09-17</td><td>FOMC 금리결정</td><td style="text-align:right;color:var(--text3);">D-93</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <hr class="divider" style="margin-top:0;">
+
+  <div class="section-label">매수 계획</div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px;">💰 투자 계획</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="color:var(--text2);font-size:11px;border-bottom:1px solid var(--border);">
+          <th style="text-align:left;padding:5px 0;font-weight:500;">단계</th>
+          <th style="text-align:right;padding:5px 0;font-weight:500;">금액</th>
+          <th style="text-align:right;padding:5px 0;font-weight:500;">비고</th>
+        </tr>
+      </thead>
+      <tbody style="line-height:2.2;">
+        <tr><td style="color:var(--text2);">1차 매수</td><td style="text-align:right;font-weight:600;">미정</td><td style="text-align:right;color:var(--text3);">—</td></tr>
+        <tr><td style="color:var(--text2);">2차 분할매수</td><td style="text-align:right;font-weight:600;">미정</td><td style="text-align:right;color:var(--text3);">—</td></tr>
+        <tr style="border-top:1px solid var(--border);font-weight:600;"><td>합계</td><td style="text-align:right;">미정</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-label">매매 신호</div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:8px;">📡 기술적 지표 (자동)</div>
+    <div class="signal-row"><span class="signal-name">RSI (14일)</span><span class="badge badge-b" id="badge-rsi">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">이평선 배열</span><span class="badge badge-b" id="badge-ma">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">단기 모멘텀</span><span class="badge badge-b" id="badge-mom">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">변동성</span><span class="badge badge-b" id="badge-vol">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">52주 가격 위치</span><span class="badge badge-b" id="badge-pos">로딩 중...</span></div>
+  </div>
+  <div class="card" style="margin-top:-4px;">
+    <div class="card-title" style="margin-bottom:8px;">🌏 매크로 신호 <span style="font-size:11px;font-weight:400;color:var(--text3);">— 새로고침 시 갱신</span></div>
+    <div class="signal-row"><span class="signal-name">INDA ETF<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(뉴욕상장 인도 대표)</span></span><span class="badge badge-b" id="badge-inda">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">루피/달러<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(USD/INR)</span></span><span class="badge badge-b" id="badge-usdinr">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">루피/원<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(INR/KRW)</span></span><span class="badge badge-b" id="badge-inrkrw">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">달러 인덱스<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(DXY)</span></span><span class="badge badge-b" id="badge-dxy">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">신흥국 ETF<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(EEM)</span></span><span class="badge badge-b" id="badge-eem">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">인도 VIX<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-indiavix">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">공포지수 VIX<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(미국)</span></span><span class="badge badge-b" id="badge-vix">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">브렌트유<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span> <span style="font-size:10px;color:var(--text3);">(인도 수입 부담)</span></span><span class="badge badge-b" id="badge-crude">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">금 가격<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-gold">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">외국인 자금 흐름<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-fii">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">RBI 금리<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-rbi">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">인도 CPI<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-cpi">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">IT·제조업<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-it">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">인도 GDP<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-gdp">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">미국 연준 금리<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-fed">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">미-인도 무역<span style="font-size:10px;color:var(--text3);margin-left:4px;">자동</span></span><span class="badge badge-b" id="badge-trade">로딩 중...</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);">* 뉴스 항목은 마우스를 올리면 원문 헤드라인을 볼 수 있어요</div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-label">매수 타이밍 가이드</div>
+  <div class="action action-hold" id="ag-now">
+    <div class="action-title" id="ag-now-title">📌 지금 — 분석 중</div>
+    <div class="action-desc" id="ag-now-desc">데이터 로딩 후 AI가 현황을 분석합니다.</div>
+  </div>
+  <div class="action action-buy" id="ag-buy1">
+    <div class="action-title" id="ag-buy1-title">🟢 1차 매수 조건</div>
+    <div class="action-desc" id="ag-buy1-desc">데이터 로딩 후 AI가 조건을 생성합니다.</div>
+  </div>
+  <div class="action action-buy" id="ag-buy2">
+    <div class="action-title" id="ag-buy2-title">🟢 2차 매수 조건</div>
+    <div class="action-desc" id="ag-buy2-desc">데이터 로딩 후 AI가 조건을 생성합니다.</div>
+  </div>
+  <div class="action action-sell" id="ag-sell">
+    <div class="action-title" id="ag-sell-title">🔴 손절 조건</div>
+    <div class="action-desc" id="ag-sell-desc">데이터 로딩 후 AI가 조건을 생성합니다.</div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-label">AI 매수 판단 질문</div>
+  <div class="card">
+    <div class="card-title">지금 상황 물어보기</div>
+    <div id="key-setup" style="margin-bottom:10px;display:none;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Anthropic API 키를 입력하면 저장됩니다 (이 기기에만)</div>
+      <div class="input-row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-...">
+        <button class="btn" onclick="saveKey()">저장</button>
+      </div>
+    </div>
+    <div class="input-row">
+      <input type="text" id="ai-q" placeholder="예: 지금 NIFTY 매수 타이밍인가요?">
+      <button class="btn" onclick="askAI()">분석 ↗</button>
+    </div>
+    <div class="quick-btns">
+      <button class="btn quick-btn" onclick="setQ('지금 1차 매수 타이밍인가요?')">1차 매수?</button>
+      <button class="btn quick-btn" onclick="setQ('NIFTY 하락 원인이 뭔가요?')">하락 이유</button>
+      <button class="btn quick-btn" onclick="setQ('이번 주 인도 시장 핵심 이슈가 뭔가요?')">이번 주 이슈</button>
+      <button class="btn quick-btn" onclick="toggleKeySetup()">🔑 키 변경</button>
+    </div>
+    <div class="ai-response" id="ai-resp">질문을 입력하거나 위 버튼을 눌러보세요.</div>
+  </div>
+
+  <div class="footer">
+    마지막 업데이트: <span id="last-updated">--</span>
+    <br><br>
+    <button onclick="location.reload(true)" style="margin-top:4px;padding:8px 24px;border-radius:20px;border:0.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;">🔄 새로고침</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>window.Chart||document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>')</script>
+<script>
+let _indaScale = 440;
+let _chartInst = null;
+let _chartCache = {};
+let _curPeriod = 'd1';
+let _liveData = {};
+
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const tC = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+const gC = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+
+const MA_CONFIG = {
+  d1:  [{n:5,color:'#FF6B6B',label:'MA5'},{n:20,color:'#FFA500',label:'MA20'}],
+  d5:  [{n:3,color:'#FF6B6B',label:'MA3'},{n:5,color:'#FFA500',label:'MA5'}],
+  d30: [{n:5,color:'#FF6B6B',label:'MA5'},{n:10,color:'#FFA500',label:'MA10'}],
+  mo3: [{n:4,color:'#FF6B6B',label:'MA4주'},{n:8,color:'#FFA500',label:'MA8주'}],
+  mo6: [{n:5,color:'#FF6B6B',label:'MA5주'},{n:13,color:'#FFA500',label:'MA13주'}],
+  yr1: [{n:5,color:'#FF6B6B',label:'MA5주'},{n:13,color:'#FFA500',label:'MA13주'},{n:26,color:'#9B59B6',label:'MA26주'}],
+};
+
+function calcMA(prices, n) {
+  return prices.map((_, i) => {
+    if (i < n-1) return null;
+    return +(prices.slice(i-n+1,i+1).reduce((a,b)=>a+b,0)/n).toFixed(2);
+  });
+}
+
+function makeDatasets(prices, period) {
+  const maCfg = MA_CONFIG[period] || MA_CONFIG.yr1;
+  const maDs = maCfg.filter(p=>p.n<prices.length).map(p=>({
+    label:p.label,data:calcMA(prices,p.n),borderColor:p.color,borderWidth:1.2,
+    pointRadius:0,fill:false,tension:0.3,spanGaps:false
+  }));
+  return [{
+    label:'NIFTY 50',data:prices,borderColor:'#FF6600',
+    backgroundColor:'rgba(255,102,0,0.06)',borderWidth:2,
+    pointRadius:0,pointHoverRadius:4,fill:true,tension:0.3
+  },...maDs];
+}
+
+function renderChart(labels, prices) {
+  const ctx = document.getElementById('chartNIFTY');
+  if (_chartInst) _chartInst.destroy();
+  _chartInst = new Chart(ctx, {
+    type:'line',
+    data:{labels,datasets:makeDatasets(prices,_curPeriod)},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:true,position:'top',labels:{color:tC,font:{size:10},boxWidth:20,padding:8}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?c.parsed.y.toLocaleString():'-')}}
+      },
+      scales:{
+        x:{ticks:{color:tC,font:{size:10},maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{color:gC}},
+        y:{ticks:{color:tC,font:{size:10},callback:v=>v.toLocaleString()},grid:{color:gC}}
       }
     }
+  });
+}
 
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
+async function fetchYahoo(ticker, interval, range) {
+  try {
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
+    const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.chart.result[0];
+  } catch(e) { return null; }
+}
+
+async function loadChart(period) {
+  if (_chartCache[period]) return _chartCache[period];
+  const cfg = {d1:{i:'5m',r:'1d'},d5:{i:'1d',r:'5d'},d30:{i:'1d',r:'1mo'},mo3:{i:'1wk',r:'3mo'},mo6:{i:'1wk',r:'6mo'},yr1:{i:'1wk',r:'1y'}};
+  const c = cfg[period];
+  const data = await fetchYahoo('INDA', c.i, c.r);
+  if (!data) return null;
+  const ts = data.timestamp;
+  const closes = data.indicators.quote[0].close;
+  const labels = [], prices = [];
+  ts.forEach((t,i) => {
+    if (closes[i] == null) return;
+    const d = new Date(t*1000);
+    const lbl = period==='d1'
+      ? d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+      : `${d.getMonth()+1}/${d.getDate()}`;
+    labels.push(lbl);
+    prices.push(Math.round(closes[i]*_indaScale));
+  });
+  const result = {labels, prices};
+  _chartCache[period] = result;
+  return result;
+}
+
+async function switchPeriod(period, el) {
+  document.querySelectorAll('#nifty-tabs .period-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  _curPeriod = period;
+  const data = await loadChart(period);
+  if (!data) return;
+  if (_chartInst) {
+    _chartInst.data.labels = data.labels;
+    _chartInst.data.datasets = makeDatasets(data.prices, period);
+    _chartInst.update();
+  } else {
+    renderChart(data.labels, data.prices);
+  }
+}
+
+function fmt(v, d=2) { return v==null?'--':v.toLocaleString('ko-KR',{maximumFractionDigits:d}); }
+function arrow(p) { return p>=0?'▲':'▼'; }
+
+function setBadge(id, text, cls) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent=text; el.className='badge '+cls; }
+}
+
+async function fetchQuote(ticker) {
+  const data = await fetchYahoo(ticker, '1d', '1d');
+  if (!data) return null;
+  const meta = data.meta;
+  const price = meta.regularMarketPrice;
+  const prev = meta.chartPreviousClose || meta.previousClose || price;
+  return {
+    price, prev,
+    pct: prev?(price-prev)/prev*100:0,
+    open: meta.regularMarketOpen||prev,
+    high: meta.regularMarketDayHigh||price,
+    low:  meta.regularMarketDayLow||price,
+    high52: meta.fiftyTwoWeekHigh||price,
+    low52:  meta.fiftyTwoWeekLow||price,
+  };
+}
+
+async function fetchAllLive() {
+  const tickers = ['^NSEI','^BSESN','INDA','USDINR=X','INRKRW=X','DX-Y.NYB','EEM','^VIX','^INDIAVIX','BZ=F','GC=F'];
+  const results = await Promise.all(tickers.map(t=>fetchQuote(t).catch(()=>null)));
+  const [nifty,sensex,inda,usdinr,inrkrw,dxy,eem,vix,indiavix,crude,gold] = results;
+
+  if (nifty && inda && inda.price>0) _indaScale = nifty.price/inda.price;
+
+  // NIFTY 50
+  if (nifty) {
+    const up = nifty.pct>=0;
+    const chgAbs = nifty.price-nifty.prev;
+    const pEl = document.getElementById('live-nifty-price');
+    const cEl = document.getElementById('live-nifty-change');
+    pEl.textContent = fmt(nifty.price,2); pEl.className='idx-price '+(up?'up':'down');
+    cEl.textContent = `${arrow(nifty.pct)} ${Math.abs(chgAbs).toFixed(2)}  (${up?'+':''}${nifty.pct.toFixed(2)}%)`; cEl.className='idx-change '+(up?'up':'down');
+    document.getElementById('nifty-open').textContent = fmt(nifty.open,2);
+    document.getElementById('nifty-high').textContent = fmt(nifty.high,2);
+    document.getElementById('nifty-low').textContent  = fmt(nifty.low,2);
+  }
+
+  // SENSEX
+  if (sensex) {
+    const up = sensex.pct>=0;
+    const chgAbs = sensex.price-sensex.prev;
+    const pEl = document.getElementById('live-sensex-price');
+    const cEl = document.getElementById('live-sensex-change');
+    pEl.textContent = fmt(sensex.price,2); pEl.className='s-price '+(up?'up':'down');
+    cEl.textContent = `${arrow(sensex.pct)} ${Math.abs(chgAbs).toFixed(2)}  (${up?'+':''}${sensex.pct.toFixed(2)}%)`; cEl.className='s-change '+(up?'up':'down');
+    document.getElementById('sensex-ohlc').innerHTML = `시가: ${fmt(sensex.open,2)}<br>고: ${fmt(sensex.high,2)} / 저: ${fmt(sensex.low,2)}`;
+  }
+
+  // Macro badges
+  if (inda) {
+    const c=inda.pct>=0.5?'badge-g':inda.pct<=-0.5?'badge-r':'badge-b';
+    setBadge('badge-inda',`$${fmt(inda.price)} ${arrow(inda.pct)}${Math.abs(inda.pct).toFixed(2)}% — ${inda.pct>=0.5?'상승':inda.pct<=-0.5?'하락':'보합'}`,c);
+  }
+  if (usdinr) {
+    const c=usdinr.price>86?'badge-r':usdinr.price>84?'badge-y':'badge-g';
+    const l=usdinr.price>86?'루피 약세':usdinr.price>84?'루피 보통':'루피 강세';
+    setBadge('badge-usdinr',`₹${fmt(usdinr.price)} — ${l}`,c);
+  }
+  if (inrkrw) {
+    const c=inrkrw.pct>=0?'badge-g':inrkrw.pct>=-0.5?'badge-b':'badge-r';
+    setBadge('badge-inrkrw',`₩${fmt(inrkrw.price,4)} ${arrow(inrkrw.pct)}${Math.abs(inrkrw.pct).toFixed(2)}%`,c);
+  }
+  if (dxy) {
+    const c=dxy.price>105?'badge-r':dxy.price>100?'badge-y':'badge-b';
+    setBadge('badge-dxy',`DXY ${fmt(dxy.price)} ${arrow(dxy.pct)}${Math.abs(dxy.pct).toFixed(2)} — ${dxy.price>105?'달러 강세':dxy.price>100?'달러 주의':'안정'}`,c);
+  }
+  if (eem) {
+    const c=eem.pct>=0.5?'badge-g':eem.pct<=-0.5?'badge-r':'badge-b';
+    setBadge('badge-eem',`$${fmt(eem.price)} ${arrow(eem.pct)}${Math.abs(eem.pct).toFixed(2)}% — ${eem.pct>=0.5?'신흥국 상승(호재)':eem.pct<=-0.5?'신흥국 하락':'보합'}`,c);
+  }
+  if (indiavix) {
+    const c=indiavix.price>20?'badge-r':indiavix.price>15?'badge-y':'badge-g';
+    setBadge('badge-indiavix',`India VIX ${fmt(indiavix.price,1)} — ${indiavix.price>20?'공포':indiavix.price>15?'주의':'안정'}`,c);
+  }
+  if (vix) {
+    const c=vix.price>25?'badge-r':vix.price>18?'badge-y':'badge-g';
+    setBadge('badge-vix',`US VIX ${fmt(vix.price,1)} — ${vix.price>25?'공포':vix.price>18?'불안':'안정'}`,c);
+  }
+  if (crude) {
+    const c=crude.price>90?'badge-r':crude.price>80?'badge-y':'badge-g';
+    setBadge('badge-crude',`$${fmt(crude.price,1)} — ${crude.price>90?'고유가(부담)':crude.price>80?'보통':'저유가(호재)'}`,c);
+  }
+  if (gold) {
+    const c=gold.pct>1?'badge-r':gold.pct>0?'badge-y':'badge-g';
+    setBadge('badge-gold',`$${fmt(gold.price,0)} ${arrow(gold.pct)}${Math.abs(gold.pct).toFixed(1)}% — ${gold.pct>1?'위험회피 심리 강함':'안정'}`,c);
+  }
+
+  // Technical from INDA weekly history
+  fetchYahoo('INDA','1wk','1y').then(hist=>{
+    if (!hist) return;
+    const closes = hist.indicators.quote[0].close.filter(p=>p!=null);
+    const prices = closes.map(p=>p*_indaScale);
+    const n = prices.length;
+    if (n < 2) return;
+    const cur = nifty?.price || prices[n-1];
+    const ma5  = n>=5  ? prices.slice(-5).reduce((a,b)=>a+b)/5 : null;
+    const ma13 = n>=13 ? prices.slice(-13).reduce((a,b)=>a+b)/13 : null;
+    const ma26 = n>=26 ? prices.slice(-26).reduce((a,b)=>a+b)/26 : null;
+    const mom4w= n>=5  ? (prices[n-1]-prices[n-5])/prices[n-5]*100 : null;
+    let vol=null;
+    if (n>=8) {
+      const rets=[]; for(let i=n-8;i<n;i++) rets.push((prices[i]-prices[i-1])/prices[i-1]*100);
+      const mean=rets.reduce((a,b)=>a+b)/rets.length;
+      vol=Math.sqrt(rets.reduce((a,b)=>a+(b-mean)**2,0)/rets.length);
+    }
+    // RSI approx from daily pct
+    const pct1d=nifty?.pct||0;
+    setBadge('badge-rsi',`1일 모멘텀 ${pct1d>=0?'▲':'▼'}${Math.abs(pct1d).toFixed(2)}%`,pct1d>1?'badge-g':pct1d<-1?'badge-r':'badge-b');
+    // MA
+    let maBadge='badge-y',maText='혼조';
+    if (ma5&&ma13&&ma26) {
+      if (cur>ma5&&ma5>ma13&&ma13>ma26){maBadge='badge-g';maText='정배열(상승)';}
+      else if(cur<ma5&&ma5<ma13&&ma13<ma26){maBadge='badge-r';maText='역배열(하락)';}
+    } else if(ma5&&ma13){
+      if(cur>ma5&&ma5>ma13){maBadge='badge-g';maText='단기 정배열';}
+      else if(cur<ma5&&ma5<ma13){maBadge='badge-r';maText='단기 역배열';}
+    }
+    setBadge('badge-ma',maText,maBadge);
+    setBadge('badge-mom',mom4w!=null?`${mom4w>=0?'▲':'▼'} ${Math.abs(mom4w).toFixed(1)}% (4주 변화)`:'N/A',
+      mom4w==null?'badge-b':mom4w>2?'badge-g':mom4w<-2?'badge-r':'badge-y');
+    setBadge('badge-vol',vol!=null?`주간 ±${vol.toFixed(2)}% — ${vol>3?'고변동':vol>1.5?'보통':'저변동'}`:'N/A',
+      vol==null?'badge-b':vol>3?'badge-r':vol>1.5?'badge-y':'badge-g');
+    if (nifty?.high52) {
+      const belowHigh=(nifty.high52-cur)/nifty.high52*100;
+      const aboveLow=nifty.low52?(cur-nifty.low52)/nifty.low52*100:null;
+      setBadge('badge-pos',`고점 대비 -${belowHigh.toFixed(1)}% / 저점 대비 +${aboveLow?aboveLow.toFixed(1):'--'}%`,
+        belowHigh<5?'badge-r':belowHigh<15?'badge-y':'badge-g');
+    }
+    recalcScorecard();
+  });
+
+  document.getElementById('last-updated').textContent =
+    new Date().toLocaleDateString('ko-KR')+' '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+
+  _liveData = {nifty,sensex,inda,usdinr,inrkrw,dxy,eem,vix,indiavix,crude,gold};
+  return _liveData;
+}
+
+async function fetchNews() {
+  const queries = {
+    fii:   'India FII FPI foreign institutional investor stock',
+    rbi:   'RBI Reserve Bank India interest rate monetary policy',
+    cpi:   'India CPI inflation consumer price index',
+    it:    'India IT technology sector manufacturing Apple Samsung',
+    gdp:   'India GDP growth economy quarter',
+    fed:   'US Federal Reserve interest rate decision',
+    trade: 'India US trade tariff deal',
+  };
+  const results = {};
+  for (const [key, q] of Object.entries(queries)) {
+    try {
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en&gl=US&ceid=US:en`;
+      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(5000)});
+      const xml = await r.text();
+      const doc = new DOMParser().parseFromString(xml,'text/xml');
+      results[key] = [...doc.querySelectorAll('item')].slice(0,3)
+        .map(i=>i.querySelector('title')?.textContent?.split(' - ')[0]?.trim()||'').filter(Boolean);
+    } catch(e){ results[key]=[]; }
+  }
+
+  function nb(id, headlines, gKw, rKw, gT, rT, nT) {
+    if (!headlines?.length) { setBadge(id,'뉴스 없음','badge-b'); return; }
+    const all = headlines.join(' ').toLowerCase();
+    const el = document.getElementById(id);
+    const isG = gKw.some(k=>all.includes(k));
+    const isR = rKw.some(k=>all.includes(k));
+    const cls = isG&&!isR?'badge-g':isR&&!isG?'badge-r':'badge-y';
+    if (el) { el.textContent=isG&&!isR?gT:isR&&!isG?rT:nT; el.className='badge '+cls; el.title=headlines.join(' / '); }
+  }
+
+  nb('badge-fii', results.fii,  ['inflow','buying','net buy','positive'],['outflow','selling','net sell','exit'],'외국인 순매수','외국인 순매도','외국인 혼조');
+  nb('badge-rbi', results.rbi,  ['cut','easing','lower','dovish','hold'],['hike','raise','hawkish','tighten'],'RBI 완화 기조','RBI 긴축 압박','RBI 정책 관망');
+  nb('badge-cpi', results.cpi,  ['fall','eases','low','decline','below'],['rise','surges','high','elevated','above'],'인플레 안정','인플레 상승','인플레 혼조');
+  nb('badge-it',  results.it,   ['boom','record','surge','expand','invest','growth'],['decline','slowdown','layoff','cut'],'IT·제조 호황','IT·제조 둔화','IT·제조 혼조');
+  nb('badge-gdp', results.gdp,  ['growth','expand','strong','fastest','outperform'],['slowdown','weak','decline','miss'],'GDP 성장 호조','GDP 성장 부진','GDP 혼조');
+  nb('badge-fed', results.fed,  ['cut','easing','dovish','pause','hold'],['hike','hawkish','tighten','raise'],'연준 완화(호재)','연준 긴축(악재)','연준 불확실');
+  nb('badge-trade',results.trade,['deal','agreement','positive','boost'],['tariff','sanction','penalty','restrict'],'미-인도 무역 호조','미-인도 무역 리스크','미-인도 무역 주시');
+
+  recalcScorecard();
+}
+
+function recalcScorecard() {
+  const bmap = {'badge-g':1,'badge-y':0,'badge-r':-1,'badge-b':0};
+  function bv(id) {
+    const el=document.getElementById(id); if(!el) return 0;
+    return bmap[[...el.classList].find(c=>c in bmap)||'']||0;
+  }
+  const techIds  = ['badge-rsi','badge-ma','badge-mom','badge-vol','badge-pos'];
+  const macroIds = ['badge-inda','badge-usdinr','badge-dxy','badge-eem','badge-indiavix','badge-vix','badge-crude','badge-gold'];
+  const newsIds  = ['badge-fii','badge-rbi','badge-cpi','badge-it','badge-gdp','badge-fed','badge-trade'];
+  const tS = techIds.reduce((s,id)=>s+bv(id)*1.5,0);
+  const mS = macroIds.reduce((s,id)=>s+bv(id)*1.0,0);
+  const nS = newsIds.reduce((s,id)=>s+bv(id)*0.8,0);
+  const total = tS+mS+nS;
+  const max = techIds.length*1.5+macroIds.length*1.0+newsIds.length*0.8;
+  const pct = Math.max(0,Math.min(100,Math.round((total+max)/(2*max)*100)));
+  let label,color,emoji;
+  if (total>=max*0.5)       {label='강매수';   color='#2d6a0a';emoji='🔥';}
+  else if(total>=max*0.15)  {label='매수 검토';color='#2d8a4e';emoji='🟢';}
+  else if(total>=-max*0.15) {label='관망';     color='#BA7517';emoji='📌';}
+  else if(total>=-max*0.5)  {label='조심';     color='#c0392b';emoji='⚠️';}
+  else                       {label='진입 자제';color='#9b2020';emoji='🔴';}
+  document.getElementById('sc-emoji').textContent=emoji+' '+label; document.getElementById('sc-emoji').style.color=color;
+  document.getElementById('sc-pct').textContent=pct+'점'; document.getElementById('sc-pct').style.color=color;
+  document.getElementById('sc-bar').style.width=pct+'%'; document.getElementById('sc-bar').style.background=color;
+  document.getElementById('sc-tech').textContent=(tS>=0?'+':'')+tS.toFixed(1); document.getElementById('sc-tech').style.color=color;
+  document.getElementById('sc-macro').textContent=(mS>=0?'+':'')+mS.toFixed(1); document.getElementById('sc-macro').style.color=color;
+  document.getElementById('sc-news').textContent=(nS>=0?'+':'')+nS.toFixed(1); document.getElementById('sc-news').style.color=color;
+}
+
+async function updateAI(liveData) {
+  const key = getKey(); if (!key) return;
+  const n = liveData?.nifty;
+  const sc = document.getElementById('sc-emoji')?.textContent?.trim()||'';
+  const ctx = `당신은 10년차 인도 주식시장 전문 애널리스트입니다.
+현재: NIFTY 50 매수 타이밍 관찰 중 (분할매수 예정, 손절 -10% 기준)
+
+[실시간 데이터]
+NIFTY 50: ${n?fmt(n.price)+` (${n.pct>=0?'▲':'▼'}${Math.abs(n.pct).toFixed(2)}%)`:'N/A'}
+USD/INR: ${liveData?.usdinr?'₹'+fmt(liveData.usdinr.price):'N/A'}
+India VIX: ${liveData?.indiavix?fmt(liveData.indiavix.price,1):'N/A'}
+US VIX: ${liveData?.vix?fmt(liveData.vix.price,1):'N/A'}
+브렌트유: ${liveData?.crude?'$'+fmt(liveData.crude.price,1):'N/A'}
+금: ${liveData?.gold?'$'+fmt(liveData.gold.price,0):'N/A'}
+종합신호: ${sc}`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:900,system:ctx,messages:[{role:'user',content:`아래 JSON 형식으로만 답하세요 (다른 텍스트 없이):
+{"now_title":"📌 지금 — [현황]","now_desc":"[2문장]","buy1_title":"🟢 1차 매수 조건","buy1_desc":"[2문장]","buy2_title":"🟢 2차 매수 조건","buy2_desc":"[2문장]","sell_title":"🔴 손절 조건","sell_desc":"[1~2문장]","sc_desc":"[종합 분석 2~3문장]","chart_analysis":"• 현재 지수: [가격] ([변화율]) — [한줄요약]\\n\\n• 추세 (이평): [분석]\\n\\n• 모멘텀: [분석]\\n\\n• 한 줄 결론: [결론]"}`}]})
+    });
+    const d = await r.json();
+    const text = d.content?.[0]?.text||'';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return;
+    const ag = JSON.parse(match[0]);
+    if (ag.now_title)      { document.getElementById('ag-now-title').textContent=ag.now_title; document.getElementById('ag-now-desc').textContent=ag.now_desc; }
+    if (ag.buy1_title)     { document.getElementById('ag-buy1-title').textContent=ag.buy1_title; document.getElementById('ag-buy1-desc').textContent=ag.buy1_desc; }
+    if (ag.buy2_title)     { document.getElementById('ag-buy2-title').textContent=ag.buy2_title; document.getElementById('ag-buy2-desc').textContent=ag.buy2_desc; }
+    if (ag.sell_title)     { document.getElementById('ag-sell-title').textContent=ag.sell_title; document.getElementById('ag-sell-desc').textContent=ag.sell_desc; }
+    if (ag.sc_desc)        { document.getElementById('sc-desc').textContent=ag.sc_desc; }
+    if (ag.chart_analysis) { document.getElementById('ai-chart-analysis').textContent=ag.chart_analysis; }
+  } catch(e) { console.warn('AI error:',e); }
+}
+
+// API key helpers
+function getKey() { return localStorage.getItem('anthropic_api_key')||''; }
+function saveKey() {
+  const k=document.getElementById('api-key-input').value.trim(); if(!k) return;
+  localStorage.setItem('anthropic_api_key',k);
+  document.getElementById('api-key-input').value='';
+  document.getElementById('key-setup').style.display='none';
+  document.getElementById('ai-resp').textContent='API 키가 저장됐어요.';
+}
+function toggleKeySetup() {
+  const el=document.getElementById('key-setup');
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+function setQ(q) { document.getElementById('ai-q').value=q; }
+
+async function askAI() {
+  const q=document.getElementById('ai-q').value.trim(); if(!q) return;
+  const key=getKey();
+  if (!key) { document.getElementById('key-setup').style.display='block'; document.getElementById('ai-resp').textContent='API 키를 먼저 입력해주세요.'; return; }
+  const box=document.getElementById('ai-resp'); box.textContent='분석 중...';
+  const sc=document.getElementById('sc-emoji')?.textContent?.trim()||'';
+  const n=_liveData?.nifty;
+  const ctx=`당신은 10년차 인도 주식시장 전문 애널리스트입니다.
+오늘: ${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}
+NIFTY 50: ${n?fmt(n.price)+` (${n.pct>=0?'+':''}${n.pct.toFixed(2)}%)`:'N/A'}
+종합신호: ${sc}
+3~5문장, 한국어, 마지막에 "이 답변은 참고용입니다" 명시.`;
+  try {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system:ctx,messages:[{role:'user',content:q}]})
+    });
+    const d=await r.json();
+    box.textContent=d.content?.[0]?.text||('오류: '+JSON.stringify(d.error||d));
+  } catch(e) { box.textContent='네트워크 오류: '+e.message; }
+}
+
+document.getElementById('ai-q').addEventListener('keydown',e=>{if(e.key==='Enter')askAI();});
+if (!getKey()) document.getElementById('key-setup').style.display='block';
+
+async function init() {
+  const chartData = await loadChart('d1');
+  if (chartData) renderChart(chartData.labels, chartData.prices);
+  const live = await fetchAllLive().catch(()=>null);
+  await fetchNews().catch(()=>{});
+  await updateAI(live).catch(()=>{});
+}
+
+init();
+setInterval(async()=>{
+  const live=await fetchAllLive().catch(()=>null);
+  recalcScorecard();
+  // Invalidate chart cache for d1 to refresh
+  delete _chartCache['d1'];
+},5*60*1000);
+</script>
 </body>
 </html>
