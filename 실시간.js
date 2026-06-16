@@ -309,10 +309,10 @@
   }
 
   // ── 📰 주요 뉴스 (제목+링크, 열 때마다 실시간) ──
-  // Yahoo Finance INDA — 인도 ETF/매크로 중심, 한국 투자자 관점에서 유용한 뉴스
+  // 한국어 구글뉴스 — 국내 언론사가 발행한 인도 관련 뉴스
   const NEWS_FEEDS = [
-    { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=INDA&region=US&lang=en-US', source: 'Yahoo Finance' },
-    { url: 'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms', source: 'ET Economy' },
+    { url: 'https://news.google.com/rss/search?q=인도+증시&hl=ko&gl=KR&ceid=KR:ko', source: '구글뉴스', isKo: true },
+    { url: 'https://news.google.com/rss/search?q=인도+경제+투자&hl=ko&gl=KR&ceid=KR:ko', source: '구글뉴스', isKo: true },
   ];
 
   function relTime(ts) {
@@ -334,6 +334,7 @@
           title: (it.title || '').trim(),
           link: (it.link || it.guid || '').trim(),
           source: f.source,
+          isKo: !!f.isKo,
           ts: it.pubDate ? (new Date(it.pubDate).getTime() || 0) / 1000 : 0,
         })).filter((x) => x.title && x.link.startsWith('http'));
       } catch (e) { return []; }
@@ -364,8 +365,8 @@
     if (!box) return;
     const items = await fetchNewsItems();
     if (!items.length) { box.innerHTML = '<div style="font-size:12px;color:var(--text3);">뉴스를 불러오지 못했어요 (잠시 후 새로고침)</div>'; return; }
-    // 제목 한국어 번역
-    const kos = await Promise.all(items.map((n) => translateKo(n.title)));
+    // 한국어 피드는 번역 생략, 영문만 번역
+    const kos = await Promise.all(items.map((n) => n.isKo ? n.title : translateKo(n.title)));
     items.forEach((n, i) => { n.ko = (kos[i] || n.title).trim(); });
     // 전역 저장 (AI 차트분석·액션가이드·AI질문·뉴스신호에서 재사용)
     window.__majorNewsItems = items;
