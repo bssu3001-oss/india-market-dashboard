@@ -277,9 +277,9 @@
         <h2>API 키 설정</h2>
         <p class="modal-sub">키는 이 기기에만 저장됩니다.</p>
         <label>TwelveData API 키 <span style="color:var(--red)">*</span></label>
-        <input type="text" id="td-key-input" placeholder="your_twelvedata_api_key" />
+        <input type="text" id="td-key-input" placeholder="your_twelvedata_api_key" autocomplete="off" />
         <label>Anthropic API 키 (AI 채팅용, 선택)</label>
-        <input type="text" id="anthropic-key-input" placeholder="sk-ant-..." />
+        <input type="text" id="anthropic-key-input" placeholder="sk-ant-..." autocomplete="off" />
         <button class="btn-primary" onclick="saveKeys()">저장 후 시작</button>
       </div>
     </div>
@@ -357,14 +357,19 @@
     function showError(msg) {
       document.getElementById('loading').classList.add('hidden');
       const el = document.getElementById('error-msg');
-      el.innerHTML = msg;
+      el.innerHTML = '';
+      // split on <br> and append text nodes with line breaks
+      msg.split('<br>').forEach((part, i) => {
+        if (i > 0) el.appendChild(document.createElement('br'));
+        el.appendChild(document.createTextNode(part));
+      });
       el.classList.remove('hidden');
     }
 
     // ─── Formatting Helpers ──────────────────────────────────────────────────
 
     function fmt(num, decimals = 2) {
-      if (num === null || num === undefined || isNaN(num) || num === 0) return '--';
+      if (num === null || num === undefined || isNaN(num)) return '--';
       return num.toLocaleString('ko-KR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     }
 
@@ -414,8 +419,11 @@
     // ─── Main Data Load ──────────────────────────────────────────────────────
 
     let _ctx = { nifty: {}, sensex: {}, macro: {}, technical: {}, signal: {} };
+    let _isLoading = false;
 
     async function loadData() {
+      if (_isLoading) return;
+      _isLoading = true;
       showLoading();
       try {
         const SYMBOLS = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'BCO/USD', 'DXY', 'BANKNIFTY', 'INDIAVIX'];
@@ -428,6 +436,15 @@
         ]);
 
         const q = (sym) => quotes[sym] || {};
+
+        // Check for per-symbol errors in batch response
+        const SYMBOLS_CHECK = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'BCO/USD', 'DXY', 'BANKNIFTY', 'INDIAVIX'];
+        SYMBOLS_CHECK.forEach(sym => {
+          if (quotes[sym]?.status === 'error') {
+            console.warn(`Symbol ${sym} error: ${quotes[sym].message}`);
+          }
+        });
+
         const pf = (v) => parseFloat(v) || 0;
 
         const nifty = {
@@ -495,12 +512,13 @@
         console.error(err);
         if (err.message.includes('401') || err.message.includes('403') || err.message.includes('invalid')) {
           showError('API 키가 올바르지 않습니다. ⚙️ 설정을 눌러 키를 다시 입력해주세요.<br><br>오류: ' + err.message);
-          localStorage.removeItem('td_api_key');
         } else if (err.message.includes('429')) {
           showError('API 호출 한도를 초과했습니다. 잠시 후 🔄 새로고침 해주세요.');
         } else {
           showError('데이터 로드 실패: ' + err.message + '<br><br>🔄 새로고침 하거나 ⚙️ 설정에서 API 키를 확인해주세요.');
         }
+      } finally {
+        _isLoading = false;
       }
     }
 
@@ -606,7 +624,7 @@
             </div>
             <div class="score-item">
               <div class="score-item-label">뉴스</div>
-              <div class="score-item-val neutral">0.0</div>
+              <div class="score-item-val neutral" style="font-size:11px">준비중</div>
             </div>
           </div>
         </div>`;
@@ -766,7 +784,10 @@ Nifty Bank: ${fmt(macro.bankNifty, 0)} (${sign(macro.bankNiftyChange)}${fmt(macr
       }
 
       const messages = document.getElementById('chat-messages');
-      messages.innerHTML += `<div class="chat-msg user">${question}</div>`;
+      const userEl = document.createElement('div');
+      userEl.className = 'chat-msg user';
+      userEl.textContent = question;
+      messages.appendChild(userEl);
       input.value = '';
 
       const loadingEl = document.createElement('div');
