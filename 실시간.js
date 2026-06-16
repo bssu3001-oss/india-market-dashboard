@@ -562,8 +562,9 @@
     // 종합 신호 재계산 (뉴스 배지 제거됐으므로 가격 배지만으로 계산)
     try { if (typeof recalcScorecard === 'function') recalcScorecard(); } catch (e) {}
 
-    // 뉴스가 로드된 뒤 rule-based 분석 재실행 (AI 키 없을 때 뉴스 반영)
+    // 뉴스 포함 최종 분석 — 1초 대기 후 덮어쓰기 (fetchAllLive/fetchNews 콜백보다 나중에 실행 보장)
     try {
+      await new Promise(r => setTimeout(r, 1000));
       if (typeof applyAnalysis === 'function' && typeof ruleBasedAnalysis === 'function' && typeof _liveData !== 'undefined') {
         if (!getAnthropicKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
       }

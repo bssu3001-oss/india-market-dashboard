@@ -527,8 +527,7 @@ async function fetchAllLive() {
         belowHigh<5?'badge-r':belowHigh<15?'badge-y':'badge-g');
     }
     recalcScorecard();
-    // 기술지표 배지가 채워진 후 rule-based 분석 재갱신 (키 없을 때만)
-    if (!getKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
+    // 분석 텍스트는 실시간.js가 뉴스 로드 후 처리하므로 여기선 생략
   });
 
   document.getElementById('last-updated').textContent =
@@ -561,8 +560,7 @@ async function fetchNews() {
   window.__newsForAnalysis = allTitles;
 
   recalcScorecard();
-  // 뉴스 로드 완료 후 rule-based 분석 재갱신
-  if (!getKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
+  // 분석 텍스트는 실시간.js가 뉴스 로드 후 처리하므로 여기선 생략
 }
 
 function recalcScorecard() {
