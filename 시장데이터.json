@@ -1,0 +1,17 @@
+{
+  "updated": "2026-06-16 23:57",
+  "nifty": 23989,
+  "pct": 0.56,
+  "ma_signal": "역배열(하락)",
+  "rsi": 59.5,
+  "mom4": 1.1,
+  "from_hi": -8.9,
+  "india_vix": 13.4,
+  "us_vix": 15.9,
+  "crude": 79.9,
+  "usdinr": 94.55,
+  "score_pct": 48,
+  "score_label": "관망",
+  "score_emoji": "📌",
+  "score_desc": "이평선 역배열(하락), 4주 모멘텀 보합(1.1%), India VIX 13.4(안정), 미국 VIX 15.9(안정), USD/INR ₹94.55(루피 약세), 유가 $79.9(안정). 관망 판단 — 추세 회복 확인 후 진입 권장."
+}
