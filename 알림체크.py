@@ -160,7 +160,7 @@ def fetch_market_data():
 
     return {
         "current": round(current),
-        "prev": round(prev),
+        "prev": round(prev_close),
         "pct": round(pct, 2),
         "ma5": round(ma5), "ma13": round(ma13), "ma26": round(ma26),
         "ma_signal": ma_signal,
