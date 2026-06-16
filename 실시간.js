@@ -382,6 +382,29 @@
     }).join('');
   }
 
+  // ── 매크로 신호 섹션에 뉴스 이슈 리스트 렌더링 ──
+  function renderMacroNews() {
+    const box = document.getElementById('macro-news-list');
+    if (!box) return;
+    const items = window.__majorNewsItems || [];
+    if (!items.length) { box.innerHTML = '<div style="font-size:12px;color:var(--text3);">뉴스를 불러오지 못했어요</div>'; return; }
+    // 제목 정리: 접두어·출처 제거, 50자 이내로 압축
+    function clean(t) {
+      return (t||'').replace(/\[.*?\]\s*/g,'').replace(/\s*[-–—]\s*[\w가-힣]+\s*$/,'').trim().slice(0,60);
+    }
+    box.innerHTML = items.slice(0,5).map((n) => {
+      const title = clean(n.ko || n.title);
+      const time = relTime(n.ts);
+      return `<a href="${n.link}" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:6px;padding:7px 0;border-bottom:0.5px solid var(--border);text-decoration:none;color:var(--text);">
+        <span style="font-size:14px;margin-top:1px;">•</span>
+        <span>
+          <span style="font-size:12.5px;line-height:1.5;">${title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>
+          ${time ? '<span style="display:block;font-size:10.5px;color:var(--text3);margin-top:2px;">' + time + ' ↗</span>' : ''}
+        </span>
+      </a>`;
+    }).join('');
+  }
+
   // 인라인 액션가이드가 쓰는 fetchLatestNews 를 우리 뉴스(한국어)로 교체 → 액션가이드에 반영
   window.fetchLatestNews = async function () {
     const items = window.__majorNewsItems || [];
@@ -400,6 +423,9 @@
     // 주요 뉴스 먼저 (번역·전역저장) → 이후 분석/신호에서 반영
     try { await renderMajorNews(); } catch (e) {}
 
+    // 매크로 신호 섹션 이슈 리스트 업데이트
+    try { renderMacroNews(); } catch (e) {}
+
     // 기술지표 + AI 차트분석 (뉴스 이슈 반영)
     try {
       const c = window._charts && window._charts['chartNifty'];
@@ -410,10 +436,7 @@
       }
     } catch (e) {}
 
-    // 뉴스 신호 → 배지 → 종합신호 (AI 키 있을 때, 위 번역 뉴스 사용)
-    try { await updateNewsSignals(); } catch (e) {}
-
-    // 종합 신호 재계산
+    // 종합 신호 재계산 (뉴스 배지 제거됐으므로 가격 배지만으로 계산)
     try { if (typeof recalcScorecard === 'function') recalcScorecard(); } catch (e) {}
 
     // 뉴스가 로드된 뒤 rule-based 분석 재실행 (AI 키 없을 때 뉴스 반영)
