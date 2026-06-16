@@ -675,22 +675,28 @@ function ruleBasedAnalysis(liveData) {
   const newsContext = hasNews ? topTitles.slice(0,2).join(' / ') : '';
   const newsContext3 = hasNews ? topTitles.slice(0,3).join(', ') : '';
 
-  // 1차 매수 — 최신 뉴스 반영
+  // 1차 매수 — "이렇게 되면 사세요" 조건 형식
   const buy1_price = price ? Math.round(price * (newsFavorable ? 0.97 : 0.95)) : null;
+  const buy1_news = hasNews
+    ? (newsFavorable ? `현재 뉴스 흐름(${topTitles[0]})이 이어지는 동안은 눌림목 매수 유리.` : `뉴스 변화 확인 후 진입.`)
+    : '';
   const buy1_desc = buy1_price
-    ? `현재가 대비 ${newsFavorable ? '약 -3%' : '약 -5%'} 하락 시 (${fmt(buy1_price)} 부근) 1차 분할매수 검토.${hasNews ? ' 최신 이슈: ' + newsContext + '.' : ''} India VIX ${vix ? vix.toFixed(1) : 'N/A'} 확인 후 진입하세요.`
+    ? `NIFTY 50이 ${fmt(buy1_price)} 이하로 하락하면 1차 분할매수 진입. 조건 ① India VIX ${vix ? vix.toFixed(1) : '20'} 이하 유지 ② 이평선 지지 확인 ③ 외국인 순매도 급증 없을 것. ${buy1_news}`
     : '데이터 로딩 후 조건이 계산됩니다.';
 
-  // 2차 매수 — 최신 뉴스 반영
+  // 2차 매수 — "이렇게 되면 추가 매수" 조건 형식
   const buy2_price = price ? Math.round(price * (newsAdverse ? 0.88 : 0.91)) : null;
+  const buy2_news = newsAdverse
+    ? '악재 뉴스 지속 시 더 낮은 구간까지 기다리는 것이 유리.'
+    : 'RSI 30 이하 과매도 + 외국인 순매수 전환 시 적극 진입.';
   const buy2_desc = buy2_price
-    ? `1차 매수 후 추가 ${newsAdverse ? '-7%' : '-5%'} 하락 시 (${fmt(buy2_price)} 부근) 2차 분할매수 검토.${newsAdverse ? ' 악재 우세로 더 낮은 구간까지 관망 권장.' : hasNews ? ' 뉴스 흐름 (' + newsContext + ') 긍정적 — RSI 과매도 진입 시 추가 매수.' : ' RSI 과매도 및 단기 반등 신호 확인 후 진입.'}`
+    ? `1차 매수 후 추가 ${newsAdverse ? '-7%' : '-5%'} 하락(${fmt(buy2_price)} 부근)까지 오면 2차 분할매수. 조건 ① RSI 30 이하 과매도 ② 단기 반등 캔들 ③ 외국인 순매수 전환. ${buy2_news}`
     : '데이터 로딩 후 조건이 계산됩니다.';
 
-  // 손절 — 악재 시 기준 강화
+  // 손절 — "이런 상황이면 팔아야" 조건 형식
   const sell_price = price ? Math.round(price * (newsAdverse ? 0.92 : 0.90)) : null;
   const sell_desc = sell_price
-    ? `매수 평균가 대비 ${newsAdverse ? '-8%' : '-10%'} 이탈 시 (${fmt(sell_price)} 이하) 기계적 손절.${newsAdverse ? ' 악재 신호 우세로 손절 기준 강화.' : ''}`
+    ? `매수 평균가 대비 ${newsAdverse ? '-8%' : '-10%'} 이탈(${fmt(sell_price)} 이하) 시 기계적 손절. 조기 손절 신호: India VIX 25 이상 급등 / 외국인 대량 순매도 / RBI 예상 밖 금리 인상.`
     : '매수 평균가 대비 -10% 이탈 시 기계적 손절 실행.';
 
   // 종합 분석 — 실제 뉴스 헤드라인 반영
