@@ -266,7 +266,7 @@
       <div class="header-meta">
         <span id="last-updated">--</span>
         <div class="header-btns">
-          <button class="btn-sm" onclick="loadData()">🔄 새로고침</button>
+          <button class="btn-sm" onclick="loadData(true)">🔄 새로고침</button>
           <button class="btn-sm" onclick="showModal()">⚙️ 설정</button>
         </div>
       </div>
@@ -416,17 +416,49 @@
       return parseFloat(data.values?.[0]?.ema) || null;
     }
 
+    // ─── Cache ───────────────────────────────────────────────────────────────
+
+    const CACHE_TTL_MS = 5 * 60 * 1000; // 5분
+
+    function saveCache(data) {
+      localStorage.setItem('dashboard_cache', JSON.stringify({ ts: Date.now(), data }));
+    }
+
+    function loadCache() {
+      try {
+        const raw = localStorage.getItem('dashboard_cache');
+        if (!raw) return null;
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts < CACHE_TTL_MS) return { data, ageMs: Date.now() - ts };
+      } catch {}
+      return null;
+    }
+
     // ─── Main Data Load ──────────────────────────────────────────────────────
 
     let _ctx = { nifty: {}, sensex: {}, macro: {}, technical: {}, signal: {} };
     let _isLoading = false;
 
-    async function loadData() {
+    async function loadData(forceRefresh = false) {
       if (_isLoading) return;
+
+      // 캐시 확인 (강제 새로고침이 아닐 때)
+      if (!forceRefresh) {
+        const cached = loadCache();
+        if (cached) {
+          const ageMin = Math.round(cached.ageMs / 60000);
+          renderAll(cached.data);
+          document.getElementById('last-updated').textContent =
+            `캐시 (${ageMin}분 전) — 🔄 새로고침으로 갱신`;
+          showDashboard();
+          return;
+        }
+      }
+
       _isLoading = true;
       showLoading();
       try {
-        // 무료 플랜: 분당 8크레딧. 심볼 1개 = 1크레딧.
+        // 무료 플랜: 배치 1회 호출 = 6크레딧
         const SYMBOLS = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'DXY'];
 
         const quotes = await fetchQuotes(SYMBOLS);
@@ -489,14 +521,10 @@
 
         const sigData = calcSignal(technical, macro);
 
-        _ctx = { nifty, sensex, macro, technical, signal: sigData };
+        const payload = { nifty, sensex, macro, technical, signal: sigData, fetchedAt: Date.now() };
+        saveCache(payload);
 
-        renderIndices(nifty, sensex);
-        renderSignal(sigData);
-        renderTechnical(technical);
-        renderMacro(macro);
-        renderCurrency(macro);
-
+        renderAll(payload);
         document.getElementById('last-updated').textContent =
           '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
 
@@ -513,6 +541,15 @@
       } finally {
         _isLoading = false;
       }
+    }
+
+    function renderAll({ nifty, sensex, macro, technical, signal }) {
+      _ctx = { nifty, sensex, macro, technical, signal };
+      renderIndices(nifty, sensex);
+      renderSignal(signal);
+      renderTechnical(technical);
+      renderMacro(macro);
+      renderCurrency(macro);
     }
 
     // ─── Render: Market Indices ──────────────────────────────────────────────
