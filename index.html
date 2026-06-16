@@ -537,44 +537,55 @@ async function fetchAllLive() {
 }
 
 async function fetchNews() {
-  const queries = {
-    fii:   'India FII FPI foreign institutional investor stock',
-    rbi:   'RBI Reserve Bank India interest rate monetary policy',
-    cpi:   'India CPI inflation consumer price index',
-    it:    'India IT technology sector manufacturing Apple Samsung',
-    gdp:   'India GDP growth economy quarter',
-    fed:   'US Federal Reserve interest rate decision',
-    trade: 'India US trade tariff deal',
-  };
-  const results = {};
-  for (const [key, q] of Object.entries(queries)) {
+  // Economic Times RSS — corsproxy.io 통과 확인된 소스
+  const ET_FEEDS = [
+    'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
+    'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms',
+  ];
+
+  let allTitles = [];
+  for (const feedUrl of ET_FEEDS) {
     try {
-      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en&gl=US&ceid=US:en`;
-      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(5000)});
+      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(feedUrl)}`, {signal: AbortSignal.timeout(7000)});
+      if (!r.ok) continue;
       const xml = await r.text();
-      const doc = new DOMParser().parseFromString(xml,'text/xml');
-      results[key] = [...doc.querySelectorAll('item')].slice(0,3)
-        .map(i=>i.querySelector('title')?.textContent?.split(' - ')[0]?.trim()||'').filter(Boolean);
-    } catch(e){ results[key]=[]; }
+      const doc = new DOMParser().parseFromString(xml, 'text/xml');
+      const titles = [...doc.querySelectorAll('item title')].map(el => el.textContent?.trim() || '').filter(Boolean);
+      allTitles = allTitles.concat(titles);
+    } catch(e) { /* 다음 피드 시도 */ }
   }
+
+  // 카테고리별 키워드로 분류
+  function classify(catKws) {
+    return allTitles.filter(t => catKws.some(k => t.toLowerCase().includes(k)));
+  }
+  const results = {
+    fii:   classify(['fii','fpi','foreign institutional','foreign investor','foreign flow','dii']),
+    rbi:   classify(['rbi','reserve bank','monetary policy','repo rate','interest rate','mpc']),
+    cpi:   classify(['cpi','inflation','consumer price','wpi','price index']),
+    it:    classify(['it sector','infosys','tcs','wipro','hcl','tech mahindra','manufacturing','apple','samsung','pli']),
+    gdp:   classify(['gdp','gross domestic','economic growth','economy quarter']),
+    fed:   classify(['federal reserve','fed rate','fomc','jerome powell','us interest']),
+    trade: classify(['trade deal','tariff','us india trade','import duty','export','commerce']),
+  };
 
   function nb(id, headlines, gKw, rKw, gT, rT, nT) {
     if (!headlines?.length) { setBadge(id,'뉴스 없음','badge-b'); return; }
-    const all = headlines.join(' ').toLowerCase();
+    const all = headlines.slice(0,5).join(' ').toLowerCase();
     const el = document.getElementById(id);
     const isG = gKw.some(k=>all.includes(k));
     const isR = rKw.some(k=>all.includes(k));
     const cls = isG&&!isR?'badge-g':isR&&!isG?'badge-r':'badge-y';
-    if (el) { el.textContent=isG&&!isR?gT:isR&&!isG?rT:nT; el.className='badge '+cls; el.title=headlines.join(' / '); }
+    if (el) { el.textContent=isG&&!isR?gT:isR&&!isG?rT:nT; el.className='badge '+cls; el.title=headlines.slice(0,3).join(' / '); }
   }
 
-  nb('badge-fii', results.fii,  ['inflow','buying','net buy','positive'],['outflow','selling','net sell','exit'],'외국인 순매수','외국인 순매도','외국인 혼조');
-  nb('badge-rbi', results.rbi,  ['cut','easing','lower','dovish','hold'],['hike','raise','hawkish','tighten'],'RBI 완화 기조','RBI 긴축 압박','RBI 정책 관망');
-  nb('badge-cpi', results.cpi,  ['fall','eases','low','decline','below'],['rise','surges','high','elevated','above'],'인플레 안정','인플레 상승','인플레 혼조');
-  nb('badge-it',  results.it,   ['boom','record','surge','expand','invest','growth'],['decline','slowdown','layoff','cut'],'IT·제조 호황','IT·제조 둔화','IT·제조 혼조');
-  nb('badge-gdp', results.gdp,  ['growth','expand','strong','fastest','outperform'],['slowdown','weak','decline','miss'],'GDP 성장 호조','GDP 성장 부진','GDP 혼조');
-  nb('badge-fed', results.fed,  ['cut','easing','dovish','pause','hold'],['hike','hawkish','tighten','raise'],'연준 완화(호재)','연준 긴축(악재)','연준 불확실');
-  nb('badge-trade',results.trade,['deal','agreement','positive','boost'],['tariff','sanction','penalty','restrict'],'미-인도 무역 호조','미-인도 무역 리스크','미-인도 무역 주시');
+  nb('badge-fii', results.fii,  ['inflow','buying','net buy','positive','purchase'],['outflow','selling','net sell','exit','withdraw'],'외국인 순매수','외국인 순매도','외국인 혼조');
+  nb('badge-rbi', results.rbi,  ['cut','easing','lower','dovish','hold','pause'],['hike','raise','hawkish','tighten','concern'],'RBI 완화 기조','RBI 긴축 압박','RBI 정책 관망');
+  nb('badge-cpi', results.cpi,  ['fall','eases','low','decline','below','cool','ease'],['rise','surges','high','elevated','above','jump'],'인플레 안정','인플레 상승','인플레 혼조');
+  nb('badge-it',  results.it,   ['boom','record','surge','expand','invest','growth','win','order'],['decline','slowdown','layoff','cut','miss'],'IT·제조 호황','IT·제조 둔화','IT·제조 혼조');
+  nb('badge-gdp', results.gdp,  ['growth','expand','strong','fastest','outperform','beat'],['slowdown','weak','decline','miss','contract'],'GDP 성장 호조','GDP 성장 부진','GDP 혼조');
+  nb('badge-fed', results.fed,  ['cut','easing','dovish','pause','hold','lower'],['hike','hawkish','tighten','raise','concern'],'연준 완화(호재)','연준 긴축(악재)','연준 불확실');
+  nb('badge-trade',results.trade,['deal','agreement','positive','boost','reduce','exempt'],['tariff','sanction','penalty','restrict','ban','duty'],'미-인도 무역 호조','미-인도 무역 리스크','미-인도 무역 주시');
 
   recalcScorecard();
 }
