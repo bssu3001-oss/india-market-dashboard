@@ -181,8 +181,8 @@ def fetch_news_headlines(max_items=3):
     import re
     EXCLUDE = ['한국 증시', '한국이 인도', '인도 제치', '코스피', '코스닥', '삼성전자']
     urls = [
-        'https://news.google.com/rss/search?q=인도+증시&hl=ko&gl=KR&ceid=KR:ko',
-        'https://news.google.com/rss/search?q=NIFTY+인도+주식&hl=ko&gl=KR&ceid=KR:ko',
+        'https://news.google.com/rss/search?q=%EC%9D%B8%EB%8F%84+%EC%A6%9D%EC%8B%9C&hl=ko&gl=KR&ceid=KR:ko',
+        'https://news.google.com/rss/search?q=NIFTY+%EC%9D%B8%EB%8F%84+%EC%A3%BC%EC%8B%9D&hl=ko&gl=KR&ceid=KR:ko',
     ]
     titles = []
     for url in urls:
