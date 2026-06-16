@@ -209,6 +209,67 @@ USD/INR: {data['usdinr'] or 'N/A'} | 브렌트유: ${data['crude'] or 'N/A'}"""
         return None
 
 
+# ── 종합신호 점수 계산 (대시보드 로직 동일) ──
+def calc_scorecard(data):
+    score = 0
+    max_score = 0
+
+    # 기술적 지표 (각 1.5점)
+    rsi = data["rsi"]
+    ma  = data["ma_signal"]
+    mom = data["mom4"]
+    fhi = data["from_hi"]
+    lo52_pct = data.get("from_lo", 0)
+
+    rsi_s = 1 if rsi <= 40 else (-1 if rsi >= 70 else 0)
+    ma_s  = 1 if "정배열" in ma else (-1 if "역배열" in ma else 0)
+    mom_s = 1 if mom >= 2 else (-1 if mom <= -2 else 0)
+    # 변동성: 낮을수록 좋음 (std 없으면 중립)
+    vol_s = 0
+    # 52주 위치: 저점 부근 좋음
+    pos_s = 1 if fhi <= -20 else (-1 if fhi >= -3 else 0)
+
+    for s in [rsi_s, ma_s, mom_s, vol_s, pos_s]:
+        score += s * 1.5
+        max_score += 1.5
+
+    # 매크로 (각 1.0점)
+    vix_i = data["india_vix"] or 0
+    vix_u = data["us_vix"] or 0
+    crude = data["crude"] or 80
+    usdinr = data["usdinr"] or 84
+
+    vix_i_s = 1 if vix_i < 15 else (-1 if vix_i > 22 else 0)
+    vix_u_s = 1 if vix_u < 20 else (-1 if vix_u > 28 else 0)
+    crude_s = 1 if crude < 75 else (-1 if crude > 85 else 0)
+    usdinr_s = 1 if usdinr < 83 else (-1 if usdinr > 87 else 0)
+
+    for s in [vix_i_s, vix_u_s, crude_s, usdinr_s]:
+        score += s * 1.0
+        max_score += 1.0
+
+    pct = max(0, min(100, round((score + max_score) / (2 * max_score) * 100)))
+
+    if score >= max_score * 0.5:   label, emoji = "강매수", "🔥"
+    elif score >= max_score * 0.15: label, emoji = "매수 검토", "🟢"
+    elif score >= -max_score * 0.15: label, emoji = "관망", "📌"
+    elif score >= -max_score * 0.5:  label, emoji = "조심", "⚠️"
+    else:                             label, emoji = "진입 자제", "🔴"
+
+    # 한 줄 설명
+    desc_parts = []
+    if "정배열" in ma: desc_parts.append("이평선 정배열")
+    elif "역배열" in ma: desc_parts.append("이평선 역배열")
+    else: desc_parts.append("이평선 혼조")
+    if mom >= 2: desc_parts.append(f"모멘텀 강세(+{mom:.1f}%)")
+    elif mom <= -2: desc_parts.append(f"모멘텀 약세({mom:.1f}%)")
+    if vix_i > 0: desc_parts.append(f"India VIX {vix_i}({'안정' if vix_i < 15 else '주의' if vix_i < 22 else '공포'})")
+    if usdinr > 0: desc_parts.append(f"루피 {'약세' if usdinr > 87 else '보통'}")
+
+    desc = " / ".join(desc_parts)
+    return pct, label, emoji, desc
+
+
 # ── 알림 조건 체크 ──
 def check_conditions(data):
     alerts = []
@@ -289,26 +350,31 @@ def main():
     data = fetch_market_data()
     print(f"NIFTY: {data['current']:,} ({data['pct']:+}%) | RSI: {data['rsi']} | 이평: {data['ma_signal']}")
 
-    # ① AI 코멘트 (실행마다 1회)
+    # 종합신호 계산
+    pct_score, sc_label, sc_emoji, sc_desc = calc_scorecard(data)
+    pct_str = f"+{data['pct']:.2f}" if data['pct'] >= 0 else f"{data['pct']:.2f}"
+
+    # ① 시황 알림 (실행마다 1회)
     if not already_sent(state, "ai_comment"):
         print("AI 코멘트 생성 중...")
         comment = generate_ai_comment(data, anthropic_key)
         if comment:
-            msg = f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n{comment}\n\n📊 대시보드: {DASHBOARD_URL}"
-            kakao_send(access_token, msg)
-            mark_sent(state, "ai_comment")
-            save_state(state)
+            msg = (f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n"
+                   f"{comment}\n\n"
+                   f"━━━━━━━━━━━━\n"
+                   f"종합신호: {sc_emoji} {sc_label} ({pct_score}점)\n"
+                   f"{sc_desc}")
         else:
-            # AI 없으면 기본 시황 전송
-            pct_str = f"+{data['pct']}" if data['pct'] >= 0 else str(data['pct'])
             msg = (f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n"
                    f"NIFTY 50: {data['current']:,} ({pct_str}%)\n"
                    f"이평선: {data['ma_signal']} | RSI: {data['rsi']}\n"
                    f"India VIX: {data['india_vix'] or 'N/A'} | USD/INR: {data['usdinr'] or 'N/A'}\n\n"
-                   f"📊 {DASHBOARD_URL}")
-            kakao_send(access_token, msg)
-            mark_sent(state, "ai_comment")
-            save_state(state)
+                   f"━━━━━━━━━━━━\n"
+                   f"종합신호: {sc_emoji} {sc_label} ({pct_score}점)\n"
+                   f"{sc_desc}")
+        kakao_send(access_token, msg)
+        mark_sent(state, "ai_comment")
+        save_state(state)
 
     # ② 조건 알림
     alerts = check_conditions(data)
