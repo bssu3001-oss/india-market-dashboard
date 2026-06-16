@@ -157,7 +157,7 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
   </div>
   <div class="card" style="margin-top:-4px;">
     <div class="card-title" style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:10px;">📊 AI 차트 분석 — NIFTY 50</div>
-    <div id="ai-chart-analysis" style="font-size:13px;line-height:2;color:var(--text);">데이터 로딩 후 분석합니다...</div>
+    <div id="ai-chart-analysis" style="font-size:13px;line-height:2;color:var(--text);white-space:pre-line;">데이터 로딩 후 분석합니다...</div>
   </div>
 
   <hr class="divider">
@@ -352,7 +352,7 @@ async function fetchYahoo(ticker, interval, range) {
 
 async function loadChart(period) {
   if (_chartCache[period]) return _chartCache[period];
-  const cfg = {d1:{i:'5m',r:'1d'},d5:{i:'1d',r:'5d'},d30:{i:'1d',r:'1mo'},mo3:{i:'1wk',r:'3mo'},mo6:{i:'1wk',r:'6mo'},yr1:{i:'1wk',r:'1y'}};
+  const cfg = {d1:{i:'5m',r:'1d'},d5:{i:'1d',r:'5d'},d30:{i:'1d',r:'1mo'},mo3:{i:'1d',r:'3mo'},mo6:{i:'1wk',r:'6mo'},yr1:{i:'1wk',r:'1y'}};
   const c = cfg[period];
   const data = await fetchYahoo('INDA', c.i, c.r);
   if (!data) return null;
@@ -537,14 +537,15 @@ async function fetchAllLive() {
 }
 
 async function fetchNews() {
-  // rss2json.com — 브라우저에서 직접 RSS 파싱 가능한 무료 서비스
-  const ET_FEEDS = [
-    'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
+  // Yahoo INDA(인도 ETF/매크로 중심) + ET Economy + ET Markets
+  const FEEDS = [
+    'https://feeds.finance.yahoo.com/rss/2.0/headline?s=INDA&region=US&lang=en-US',
     'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms',
+    'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
   ];
 
   let allTitles = [];
-  for (const feedUrl of ET_FEEDS) {
+  for (const feedUrl of FEEDS) {
     try {
       const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`, {signal: AbortSignal.timeout(8000)});
       if (!r.ok) continue;
@@ -554,23 +555,25 @@ async function fetchNews() {
     } catch(e) { /* 다음 피드 시도 */ }
   }
 
-  // 카테고리별 키워드로 분류
+  // 분석용 전역 저장 (ruleBasedAnalysis / updateAI 에서 사용)
+  window.__newsForAnalysis = allTitles;
+
   function classify(catKws) {
     return allTitles.filter(t => catKws.some(k => t.toLowerCase().includes(k)));
   }
   const results = {
-    fii:   classify(['fii','fpi','foreign institutional','foreign investor','foreign flow','dii']),
-    rbi:   classify(['rbi','reserve bank','monetary policy','repo rate','interest rate','mpc']),
-    cpi:   classify(['cpi','inflation','consumer price','wpi','price index']),
-    it:    classify(['it sector','infosys','tcs','wipro','hcl','tech mahindra','manufacturing','apple','samsung','pli']),
-    gdp:   classify(['gdp','gross domestic','economic growth','economy quarter']),
-    fed:   classify(['federal reserve','fed rate','fomc','jerome powell','us interest']),
-    trade: classify(['trade deal','tariff','us india trade','import duty','export','commerce']),
+    fii:   classify(['fii','fpi','foreign','institutional investor','outflow','inflow','dii','net buy','net sell','foreign buy','foreign sell','foreign investor']),
+    rbi:   classify(['rbi','reserve bank','monetary','repo','mpc','rate cut','rate hike','hold rate','interest rate','india rate']),
+    cpi:   classify(['cpi','inflation','consumer price','wpi','price index','price rise','wholesale price','inflationary']),
+    it:    classify(['infosys','tcs','wipro','hcl','tech mahindra','it sector','technology sector','software','manufacturing','pli','it stock']),
+    gdp:   classify(['gdp','gross domestic','india growth','economy','fiscal','quarterly','q1','q2','q3','q4','growth story']),
+    fed:   classify(['fed','federal reserve','fomc','powell','rate cut','rate hike','us rate','interest rate decision','fed guidance']),
+    trade: classify(['trade deal','tariff','import duty','us-india','bilateral','trump','trade agreement','export ban','commerce']),
   };
 
   function nb(id, headlines, gKw, rKw, gT, rT, nT) {
     if (!headlines?.length) { setBadge(id,'뉴스 없음','badge-b'); return; }
-    const all = headlines.slice(0,5).join(' ').toLowerCase();
+    const all = headlines.slice(0,6).join(' ').toLowerCase();
     const el = document.getElementById(id);
     const isG = gKw.some(k=>all.includes(k));
     const isR = rKw.some(k=>all.includes(k));
@@ -578,15 +581,17 @@ async function fetchNews() {
     if (el) { el.textContent=isG&&!isR?gT:isR&&!isG?rT:nT; el.className='badge '+cls; el.title=headlines.slice(0,3).join(' / '); }
   }
 
-  nb('badge-fii', results.fii,  ['inflow','buying','net buy','positive','purchase'],['outflow','selling','net sell','exit','withdraw'],'외국인 순매수','외국인 순매도','외국인 혼조');
-  nb('badge-rbi', results.rbi,  ['cut','easing','lower','dovish','hold','pause'],['hike','raise','hawkish','tighten','concern'],'RBI 완화 기조','RBI 긴축 압박','RBI 정책 관망');
-  nb('badge-cpi', results.cpi,  ['fall','eases','low','decline','below','cool','ease'],['rise','surges','high','elevated','above','jump'],'인플레 안정','인플레 상승','인플레 혼조');
-  nb('badge-it',  results.it,   ['boom','record','surge','expand','invest','growth','win','order'],['decline','slowdown','layoff','cut','miss'],'IT·제조 호황','IT·제조 둔화','IT·제조 혼조');
-  nb('badge-gdp', results.gdp,  ['growth','expand','strong','fastest','outperform','beat'],['slowdown','weak','decline','miss','contract'],'GDP 성장 호조','GDP 성장 부진','GDP 혼조');
-  nb('badge-fed', results.fed,  ['cut','easing','dovish','pause','hold','lower'],['hike','hawkish','tighten','raise','concern'],'연준 완화(호재)','연준 긴축(악재)','연준 불확실');
-  nb('badge-trade',results.trade,['deal','agreement','positive','boost','reduce','exempt'],['tariff','sanction','penalty','restrict','ban','duty'],'미-인도 무역 호조','미-인도 무역 리스크','미-인도 무역 주시');
+  nb('badge-fii', results.fii,  ['inflow','net buy','buying','positive','purchase','foreign buy'],['outflow','net sell','selling','exit','withdraw','foreign sell'],'외국인 순매수','외국인 순매도','외국인 혼조');
+  nb('badge-rbi', results.rbi,  ['cut','easing','lower','dovish','hold','pause','accommodative'],['hike','raise','hawkish','tighten','concern','surge'],'RBI 완화 기조','RBI 긴축 압박','RBI 정책 관망');
+  nb('badge-cpi', results.cpi,  ['fall','eases','low','decline','below','cool','ease','stable'],['rise','surges','high','elevated','above','jump','spike'],'인플레 안정','인플레 상승','인플레 혼조');
+  nb('badge-it',  results.it,   ['boom','record','surge','expand','invest','growth','win','order','rise','beat'],['decline','slowdown','layoff','cut','miss','fall'],'IT·제조 호황','IT·제조 둔화','IT·제조 혼조');
+  nb('badge-gdp', results.gdp,  ['growth','expand','strong','fastest','outperform','beat','robust','rose','grew'],['slowdown','weak','decline','miss','contract','fell'],'GDP 성장 호조','GDP 성장 부진','GDP 혼조');
+  nb('badge-fed', results.fed,  ['cut','easing','dovish','pause','hold','lower','guidance'],['hike','hawkish','tighten','raise','concern','aggressive'],'연준 완화(호재)','연준 긴축(악재)','연준 불확실');
+  nb('badge-trade',results.trade,['deal','agreement','boost','reduce','exempt','succeed','positive'],['tariff','sanction','penalty','restrict','ban','risk','tension'],'미-인도 무역 호조','미-인도 무역 리스크','미-인도 무역 주시');
 
   recalcScorecard();
+  // 뉴스 로드 완료 후 rule-based 분석 재갱신
+  if (!getKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
 }
 
 function recalcScorecard() {
@@ -664,8 +669,12 @@ function ruleBasedAnalysis(liveData) {
     ? `매수 평균가 대비 -10% 이탈 시 (${fmt(sell_price)} 이하) 기계적 손절을 실행합니다. 추가 하락 리스크를 최소화하는 것이 우선입니다.`
     : '매수 평균가 대비 -10% 이탈 시 기계적 손절 실행.';
 
-  // 종합 분석
-  const sc_desc = `현재 이평선은 ${maState || '혼조'} 상태이며, ${momState ? '4주 모멘텀 ' + momState + '을 기록 중입니다.' : '모멘텀을 분석 중입니다.'} ${vix > 0 ? 'India VIX ' + vix.toFixed(1) + '(' + vixState + '), USD/INR ₹' + (usdinr ? usdinr.toFixed(2) : 'N/A') + ' 수준으로 거시 환경을 고려해야 합니다.' : ''} ${scLabel} 판단하에 ${maBadge === 'badge-g' ? '분할 매수를 단계적으로 검토할 수 있습니다.' : maBadge === 'badge-r' ? '추세 회복 확인 후 진입을 권장합니다.' : '관망하며 추가 신호를 기다리는 것이 안전합니다.'}`;
+  // 뉴스 컨텍스트 (fetchNews가 저장한 전역 변수)
+  const newsSnippet = (window.__newsForAnalysis || []).slice(0, 5).join(' / ') || '';
+  const hasNews = newsSnippet.length > 0;
+
+  // 종합 분석 (뉴스 반영)
+  const sc_desc = `현재 이평선은 ${maState || '혼조'} 상태이며, ${momState ? '4주 모멘텀 ' + momState + '을 기록 중입니다.' : '모멘텀을 분석 중입니다.'} India VIX ${vix ? vix.toFixed(1) + '(' + vixState + ')' : 'N/A'}, USD/INR ₹${usdinr ? usdinr.toFixed(2) : 'N/A'} 수준입니다.${hasNews ? ' 주요 뉴스 흐름: ' + (window.__newsForAnalysis || []).slice(0, 2).join(' / ') + '.' : ''} ${scLabel} 판단하에 ${maBadge === 'badge-g' ? '분할 매수를 단계적으로 검토할 수 있습니다.' : maBadge === 'badge-r' ? '추세 회복 확인 후 진입을 권장합니다.' : '관망하며 추가 신호를 기다리는 것이 안전합니다.'}`;
 
   // 차트 분석
   const chart_analysis = [
@@ -673,8 +682,9 @@ function ruleBasedAnalysis(liveData) {
     `• 추세 (이평): ${maState || '데이터 계산 중'}`,
     `• 모멘텀: ${momState || '데이터 계산 중'} / 변동성: ${volState || '계산 중'}`,
     `• 52주 위치: ${posState || '계산 중'}`,
+    hasNews ? `• 주요 뉴스: ${(window.__newsForAnalysis || []).slice(0, 2).join(' / ')}` : '',
     `• 한 줄 결론: ${maBadge === 'badge-g' ? '상승 추세 유지 — 단기 눌림목 매수 기회 탐색' : maBadge === 'badge-r' ? '하락 추세 — 반등 확인 후 진입 권장' : '혼조 국면 — 추세 전환 신호 대기'}`
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
 
   return { now_title, now_desc, buy1_title: '🟢 1차 매수 조건', buy1_desc, buy2_title: '🟢 2차 매수 조건', buy2_desc, sell_title: '🔴 손절 조건', sell_desc, sc_desc, chart_analysis };
 }
@@ -695,6 +705,7 @@ async function updateAI(liveData) {
 
   const n = liveData?.nifty;
   const sc = document.getElementById('sc-emoji')?.textContent?.trim()||'';
+  const newsLines = (window.__newsForAnalysis || []).slice(0, 6).map(t => '- ' + t).join('\n');
   const ctx = `당신은 10년차 인도 주식시장 전문 애널리스트입니다.
 현재: NIFTY 50 매수 타이밍 관찰 중 (분할매수 예정, 손절 -10% 기준)
 
@@ -705,7 +716,8 @@ India VIX: ${liveData?.indiavix?fmt(liveData.indiavix.price,1):'N/A'}
 US VIX: ${liveData?.vix?fmt(liveData.vix.price,1):'N/A'}
 브렌트유: ${liveData?.crude?'$'+fmt(liveData.crude.price,1):'N/A'}
 금: ${liveData?.gold?'$'+fmt(liveData.gold.price,0):'N/A'}
-종합신호: ${sc}`;
+종합신호: ${sc}
+${newsLines ? '\n[최신 뉴스 헤드라인]\n' + newsLines : ''}`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages',{

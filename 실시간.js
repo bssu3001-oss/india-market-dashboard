@@ -309,10 +309,10 @@
   }
 
   // ── 📰 주요 뉴스 (제목+링크, 열 때마다 실시간) ──
-  // 인도 현지 시장 RSS (corsproxy로 안정 통과 확인됨)
+  // Yahoo Finance INDA — 인도 ETF/매크로 중심, 한국 투자자 관점에서 유용한 뉴스
   const NEWS_FEEDS = [
-    { url: 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms', source: 'ET Markets' },
-    { url: 'https://economictimes.indiatimes.com/news/economy/rssfeeds/1373380680.cms', source: 'ET Economy' },
+    { url: 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=INDA&region=US&lang=en-US', source: 'Yahoo Finance' },
+    { url: 'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms', source: 'ET Economy' },
   ];
 
   function relTime(ts) {
