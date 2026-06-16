@@ -537,7 +537,7 @@ async function fetchAllLive() {
 }
 
 async function fetchNews() {
-  // Economic Times RSS — corsproxy.io 통과 확인된 소스
+  // rss2json.com — 브라우저에서 직접 RSS 파싱 가능한 무료 서비스
   const ET_FEEDS = [
     'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
     'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms',
@@ -546,11 +546,10 @@ async function fetchNews() {
   let allTitles = [];
   for (const feedUrl of ET_FEEDS) {
     try {
-      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(feedUrl)}`, {signal: AbortSignal.timeout(7000)});
+      const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`, {signal: AbortSignal.timeout(8000)});
       if (!r.ok) continue;
-      const xml = await r.text();
-      const doc = new DOMParser().parseFromString(xml, 'text/xml');
-      const titles = [...doc.querySelectorAll('item title')].map(el => el.textContent?.trim() || '').filter(Boolean);
+      const d = await r.json();
+      const titles = (d.items || []).map(i => i.title?.trim() || '').filter(Boolean);
       allTitles = allTitles.concat(titles);
     } catch(e) { /* 다음 피드 시도 */ }
   }

@@ -325,21 +325,17 @@
 
   async function fetchNewsItems() {
     const sets = await Promise.all(NEWS_FEEDS.map(async (f) => {
-      const xml = await proxyText(f.url, 8000);
-      if (!xml) return [];
       try {
-        const doc = new DOMParser().parseFromString(xml, 'text/xml');
-        return [...doc.querySelectorAll('item')].slice(0, 12).map((it) => {
-          let link = (it.querySelector('link')?.textContent || '').trim();
-          if (!link) link = (it.querySelector('guid')?.textContent || '').trim();
-          const pd = it.querySelector('pubDate')?.textContent || '';
-          return {
-            title: (it.querySelector('title')?.textContent || '').trim(),
-            link,
-            source: f.source,
-            ts: (new Date(pd).getTime() || 0) / 1000,
-          };
-        }).filter((x) => x.title && x.link.startsWith('http'));
+        // rss2json.com — 브라우저에서 RSS 직접 파싱 가능한 무료 서비스
+        const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f.url)}`, {signal: AbortSignal.timeout(8000)});
+        if (!r.ok) return [];
+        const d = await r.json();
+        return (d.items || []).slice(0, 12).map((it) => ({
+          title: (it.title || '').trim(),
+          link: (it.link || it.guid || '').trim(),
+          source: f.source,
+          ts: it.pubDate ? (new Date(it.pubDate).getTime() || 0) / 1000 : 0,
+        })).filter((x) => x.title && x.link.startsWith('http'));
       } catch (e) { return []; }
     }));
     const all = [], seen = new Set();
