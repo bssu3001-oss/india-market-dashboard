@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>인도 주식시장 대시보드</title>
+  <style>
+    /* Task 2에서 추가 */
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>🇮🇳 인도 시장 대시보드</h1>
+      <div class="header-meta">
+        <span id="last-updated">--</span>
+        <button id="refresh-btn" onclick="loadData()">🔄 새로고침</button>
+      </div>
+    </header>
+
+    <div id="api-modal" class="modal hidden">
+      <div class="modal-box">
+        <h2>API 키 입력</h2>
+        <label>TwelveData API 키</label>
+        <input type="text" id="td-key-input" placeholder="your_twelvedata_api_key" />
+        <label>Anthropic API 키 (선택)</label>
+        <input type="text" id="anthropic-key-input" placeholder="sk-ant-..." />
+        <button onclick="saveKeys()">저장 후 시작</button>
+      </div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <section id="indices-section"></section>
+      <section id="signal-section"></section>
+      <section id="technical-section"></section>
+      <section id="macro-section"></section>
+      <section id="currency-section"></section>
+      <section id="chat-section"></section>
+    </div>
+
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p>데이터 불러오는 중...</p>
+    </div>
+
+    <div id="error-msg" class="hidden"></div>
+  </div>
+
+  <script>
+    // Task 3+ 에서 추가
+  </script>
+</body>
+</html>
