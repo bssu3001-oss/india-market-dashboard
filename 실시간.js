@@ -339,9 +339,13 @@
         })).filter((x) => x.title && x.link.startsWith('http'));
       } catch (e) { return []; }
     }));
+    // 인도 증시와 무관한 기사 제거 (한국 증시 우위 비교 기사 등)
+    const EXCLUDE = ['한국 증시', '한국이 인도', '인도 제치', '코스피', '코스닥', '삼성전자', '한국 주식'];
     const all = [], seen = new Set();
     sets.forEach((s) => s.forEach((n) => {
-      const k = n.title.toLowerCase().slice(0, 60);
+      const t = n.title;
+      if (EXCLUDE.some((kw) => t.includes(kw))) return;
+      const k = t.toLowerCase().slice(0, 60);
       if (seen.has(k)) return;
       seen.add(k); all.push(n);
     }));
@@ -411,6 +415,13 @@
 
     // 종합 신호 재계산
     try { if (typeof recalcScorecard === 'function') recalcScorecard(); } catch (e) {}
+
+    // 뉴스가 로드된 뒤 rule-based 분석 재실행 (AI 키 없을 때 뉴스 반영)
+    try {
+      if (typeof applyAnalysis === 'function' && typeof ruleBasedAnalysis === 'function' && typeof _liveData !== 'undefined') {
+        if (!getAnthropicKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
+      }
+    } catch (e) {}
 
     // 액션가이드 재생성 (뉴스 반영, AI 키 있을 때)
     try { if (typeof window.updateActionGuide === 'function' && getAnthropicKey()) window.updateActionGuide(); } catch (e) {}

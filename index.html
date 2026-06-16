@@ -653,77 +653,62 @@ function ruleBasedAnalysis(liveData) {
     ? `NIFTY 50은 현재 ${fmt(price)} (${pctStr}) 수준이며, 종합 신호는 ${scLabel} (${scPct})입니다. India VIX ${vix ? vix.toFixed(1) : 'N/A'} — ${vixState} 상태로, ${vix > 20 ? '변동성이 높아 신규 진입에 주의가 필요합니다.' : '변동성은 안정적입니다.'}`
     : '데이터를 불러오는 중입니다. 잠시 후 다시 확인해주세요.';
 
-  // 매크로/뉴스 배지 상태 읽기
+  // ── 실제 뉴스 헤드라인 (주요뉴스 카드와 동일 소스) ──
+  function cleanTitle(t) { return (t||'').replace(/\[.*?\]\s*/g,'').replace(/\s*[-–]\s*\S+$/,'').trim(); }
+  const newsItems = (window.__majorNewsItems || []);
+  const topTitles = newsItems.slice(0,5).map(n => cleanTitle(n.ko || n.title)).filter(Boolean);
+  const hasNews = topTitles.length > 0;
+
+  // 배지 색상으로 시장 전반 분위기 파악 (호재/악재 카운트)
   function badgeTxt(id) { return document.getElementById(id)?.textContent?.trim() || ''; }
-  const rbiBadge  = badgeClass('badge-rbi');
-  const fiiBadge  = badgeClass('badge-fii');
-  const gdpBadge  = badgeClass('badge-gdp');
-  const tradeBadge= badgeClass('badge-trade');
-  const cpiBadge  = badgeClass('badge-cpi');
-  const fedBadge  = badgeClass('badge-fed');
-  const chinaBadge= badgeClass('badge-china');
-  const rbiTxt    = badgeTxt('badge-rbi');
-  const fiiTxt    = badgeTxt('badge-fii');
-  const gdpTxt    = badgeTxt('badge-gdp');
-  const tradeTxt  = badgeTxt('badge-trade');
-  const cpiTxt    = badgeTxt('badge-cpi');
-  const fedTxt    = badgeTxt('badge-fed');
-  const chinaTxt  = badgeTxt('badge-china');
+  const macroIds = ['badge-rbi','badge-fii','badge-gdp','badge-trade','badge-cpi','badge-fed','badge-china'];
+  let greenCount = 0, redCount = 0;
+  macroIds.forEach(id => {
+    const cl = badgeClass(id);
+    if (cl === 'badge-g') greenCount++;
+    else if (cl === 'badge-r') redCount++;
+  });
+  const newsFavorable = greenCount > redCount;
+  const newsAdverse   = redCount > greenCount + 1;
 
-  // 호재/악재 뉴스 요약 (한국어 배지 텍스트 기반)
-  const goodNews = [
-    rbiBadge==='badge-g' ? rbiTxt : '',
-    fiiBadge==='badge-g' ? fiiTxt : '',
-    gdpBadge==='badge-g' ? gdpTxt : '',
-    tradeBadge==='badge-g' ? tradeTxt : '',
-    cpiBadge==='badge-g' ? cpiTxt : '',
-    fedBadge==='badge-g' ? fedTxt : '',
-    chinaBadge==='badge-g' ? chinaTxt : '',
-  ].filter(Boolean);
+  // 최신 뉴스 요약 문장 (최대 2개)
+  const newsContext = hasNews ? topTitles.slice(0,2).join(' / ') : '';
+  const newsContext3 = hasNews ? topTitles.slice(0,3).join(', ') : '';
 
-  const badNews = [
-    rbiBadge==='badge-r' ? rbiTxt : '',
-    fiiBadge==='badge-r' ? fiiTxt : '',
-    tradeBadge==='badge-r' ? tradeTxt : '',
-    cpiBadge==='badge-r' ? cpiTxt : '',
-    fedBadge==='badge-r' ? fedTxt : '',
-    chinaBadge==='badge-r' ? chinaTxt : '',
-  ].filter(Boolean);
-
-  // 뉴스 기반 매수 조건 조정
-  const newsFavorable = goodNews.length > badNews.length;
-  const newsAdverse   = badNews.length > goodNews.length + 1;
-
-  // 1차 매수 — 뉴스 반영
+  // 1차 매수 — 최신 뉴스 반영
   const buy1_price = price ? Math.round(price * (newsFavorable ? 0.97 : 0.95)) : null;
   const buy1_desc = buy1_price
-    ? `현재가 대비 ${newsFavorable ? '약 -3%' : '약 -5%'} 하락 시 (${fmt(buy1_price)} 부근) 1차 분할매수 진입 검토.${goodNews.length ? ' 호재: ' + goodNews.slice(0,2).join(', ') + '.' : ''}${badNews.length ? ' 주의: ' + badNews.slice(0,1).join(', ') + '.' : ''} India VIX ${vix ? vix.toFixed(1) : 'N/A'} 수준 확인 후 진입하세요.`
+    ? `현재가 대비 ${newsFavorable ? '약 -3%' : '약 -5%'} 하락 시 (${fmt(buy1_price)} 부근) 1차 분할매수 검토.${hasNews ? ' 최신 이슈: ' + newsContext + '.' : ''} India VIX ${vix ? vix.toFixed(1) : 'N/A'} 확인 후 진입하세요.`
     : '데이터 로딩 후 조건이 계산됩니다.';
 
-  // 2차 매수 — 뉴스 반영
+  // 2차 매수 — 최신 뉴스 반영
   const buy2_price = price ? Math.round(price * (newsAdverse ? 0.88 : 0.91)) : null;
   const buy2_desc = buy2_price
-    ? `1차 매수 후 추가 ${newsAdverse ? '-7%' : '-5%'} 하락 시 (${fmt(buy2_price)} 부근) 2차 분할매수 검토.${newsAdverse ? ' 악재(' + badNews.slice(0,2).join(', ') + ')가 있어 더 낮은 구간까지 관망 권장.' : ' RSI 과매도 및 단기 반등 신호 확인 후 진입.'}`
+    ? `1차 매수 후 추가 ${newsAdverse ? '-7%' : '-5%'} 하락 시 (${fmt(buy2_price)} 부근) 2차 분할매수 검토.${newsAdverse ? ' 악재 우세로 더 낮은 구간까지 관망 권장.' : hasNews ? ' 뉴스 흐름 (' + newsContext + ') 긍정적 — RSI 과매도 진입 시 추가 매수.' : ' RSI 과매도 및 단기 반등 신호 확인 후 진입.'}`
     : '데이터 로딩 후 조건이 계산됩니다.';
 
   // 손절 — 악재 시 기준 강화
   const sell_price = price ? Math.round(price * (newsAdverse ? 0.92 : 0.90)) : null;
   const sell_desc = sell_price
-    ? `매수 평균가 대비 ${newsAdverse ? '-8%' : '-10%'} 이탈 시 (${fmt(sell_price)} 이하) 기계적 손절.${newsAdverse ? ' 현재 악재(' + badNews.slice(0,1).join('') + ')로 손절 기준 강화.' : ''}`
+    ? `매수 평균가 대비 ${newsAdverse ? '-8%' : '-10%'} 이탈 시 (${fmt(sell_price)} 이하) 기계적 손절.${newsAdverse ? ' 악재 신호 우세로 손절 기준 강화.' : ''}`
     : '매수 평균가 대비 -10% 이탈 시 기계적 손절 실행.';
 
-  // 종합 분석 — 한국어 배지 기반
-  const newsSum = [...goodNews.map(t=>'✅ '+t), ...badNews.map(t=>'⚠️ '+t)].slice(0,4).join(' / ');
-  const sc_desc = `이평선 ${maState || '혼조'}, ${momState ? '4주 모멘텀 ' + momState : ''}, India VIX ${vix ? vix.toFixed(1) + '(' + vixState + ')' : 'N/A'}, USD/INR ₹${usdinr ? usdinr.toFixed(2) : 'N/A'}.${newsSum ? ' [뉴스] ' + newsSum + '.' : ''} ${scLabel} 판단 — ${maBadge === 'badge-g' ? '분할 매수 단계적 검토 가능.' : maBadge === 'badge-r' ? '추세 회복 확인 후 진입 권장.' : '관망하며 추가 신호 대기.'}`;
+  // 종합 분석 — 실제 뉴스 헤드라인 반영
+  const sc_desc = `이평선 ${maState || '혼조'}, 4주 모멘텀 ${momState || '계산 중'}, India VIX ${vix ? vix.toFixed(1)+'('+vixState+')' : 'N/A'}, USD/INR ₹${usdinr ? usdinr.toFixed(2) : 'N/A'}.${hasNews ? ' [최신 뉴스] ' + newsContext + '.' : ''} ${scLabel} 판단 — ${maBadge==='badge-g' ? '분할 매수 단계적 검토 가능.' : maBadge==='badge-r' ? '추세 회복 확인 후 진입 권장.' : '관망하며 추가 신호 대기.'}`;
 
-  // 차트 분석
+  // 차트 분석 — 실제 뉴스 헤드라인 반영
+  const trendConclusion = maBadge==='badge-g'
+    ? (newsFavorable ? '상승 추세 + 뉴스 호재 — 눌림목 매수 적극 검토' : '상승 추세 유지 — 눌림목 매수 기회 탐색')
+    : maBadge==='badge-r'
+    ? (newsAdverse ? '하락 추세 + 악재 우세 — 추가 하락 주의, 반등 확인 필수' : '하락 추세 — 반등 확인 후 진입')
+    : (newsFavorable ? '혼조이나 뉴스 우호적 — 추세 전환 신호 대기' : '혼조 — 추세 전환 신호 대기');
+
   const chart_analysis = [
     `• 현재 지수: ${price ? fmt(price) + ' (' + pctStr + ')' : 'N/A'} — ${Math.abs(pct) < 0.3 ? '보합' : pct > 0 ? '상승' : '하락'}`,
     `• 추세 (이평): ${maState || '계산 중'} / 변동성: ${volState || '계산 중'}`,
     `• 모멘텀: ${momState || '계산 중'} / 52주 위치: ${posState || '계산 중'}`,
-    goodNews.length ? `• 호재 이슈: ${goodNews.slice(0,2).join(', ')}` : '',
-    badNews.length  ? `• 주의 이슈: ${badNews.slice(0,2).join(', ')}` : '',
-    `• 한 줄 결론: ${maBadge==='badge-g' ? '상승 추세 — 눌림목 매수 기회 탐색' : maBadge==='badge-r' ? '하락 추세 — 반등 확인 후 진입' : '혼조 — 추세 전환 신호 대기'}`
+    hasNews ? `• 주요 뉴스: ${newsContext3}` : '',
+    `• 한 줄 결론: ${trendConclusion}`
   ].filter(Boolean).join('\n\n');
 
   return { now_title, now_desc, buy1_title: '🟢 1차 매수 조건', buy1_desc, buy2_title: '🟢 2차 매수 조건', buy2_desc, sell_title: '🔴 손절 조건', sell_desc, sc_desc, chart_analysis };
