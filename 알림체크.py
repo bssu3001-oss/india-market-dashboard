@@ -100,9 +100,16 @@ def fetch_market_data():
     hist = ticker.history(period="1y", interval="1wk")
     prices = [float(r["Close"]) for _, r in hist.iterrows() if not r.isnull()["Close"]]
 
-    current = prices[-1]
-    prev = prices[-2] if len(prices) >= 2 else current
-    pct = (current - prev) / prev * 100
+    # 전일 대비 등락률: fast_info의 previous_close 기준 (대시보드 차트와 일치)
+    try:
+        fi = ticker.fast_info
+        current = fi.last_price
+        prev_close = fi.previous_close
+        pct = (current - prev_close) / prev_close * 100
+    except Exception:
+        current = prices[-1]
+        prev_close = prices[-2] if len(prices) >= 2 else current
+        pct = (current - prev_close) / prev_close * 100
 
     ma5  = sum(prices[-5:])  / min(5,  len(prices))
     ma13 = sum(prices[-13:]) / min(13, len(prices))
