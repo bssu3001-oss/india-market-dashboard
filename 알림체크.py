@@ -263,17 +263,26 @@ def calc_scorecard(data):
     elif score >= -max_score * 0.5:  label, emoji = "조심", "⚠️"
     else:                             label, emoji = "진입 자제", "🔴"
 
-    # 한 줄 설명
-    desc_parts = []
-    if "정배열" in ma: desc_parts.append("이평선 정배열")
-    elif "역배열" in ma: desc_parts.append("이평선 역배열")
-    else: desc_parts.append("이평선 혼조")
-    if mom >= 2: desc_parts.append(f"모멘텀 강세(+{mom:.1f}%)")
-    elif mom <= -2: desc_parts.append(f"모멘텀 약세({mom:.1f}%)")
-    if vix_i > 0: desc_parts.append(f"India VIX {vix_i}({'안정' if vix_i < 15 else '주의' if vix_i < 22 else '공포'})")
-    if usdinr > 0: desc_parts.append(f"루피 {'약세' if usdinr > 87 else '보통'}")
+    # 상세 설명 (대시보드 종합신호 설명과 동일 수준)
+    ma_txt = "정배열(상승)" if "정배열" in ma else ("역배열(하락)" if "역배열" in ma else "혼조")
+    mom_txt = f"4주 모멘텀 강세(+{mom:.1f}%)" if mom >= 2 else (f"4주 모멘텀 약세({mom:.1f}%)" if mom <= -2 else f"4주 모멘텀 보합({mom:.1f}%)")
+    vix_txt = f"India VIX {vix_i}({'안정' if vix_i < 15 else '주의' if vix_i < 22 else '공포'})" if vix_i else "India VIX N/A"
+    vix_u_txt = f"미국 VIX {vix_u}({'안정' if vix_u < 20 else '주의' if vix_u < 28 else '공포'})" if vix_u else ""
+    inr_txt = f"USD/INR ₹{usdinr}({'루피 약세' if usdinr > 87 else '루피 안정'})" if usdinr else "USD/INR N/A"
+    crude_txt = f"유가 ${crude}({'부담' if crude > 85 else '안정'})" if crude else ""
 
-    desc = " / ".join(desc_parts)
+    trend_comment = (
+        "분할 매수 단계적 검토 가능." if "정배열" in ma and score >= 0
+        else "추세 회복 확인 후 진입 권장." if "역배열" in ma
+        else "관망하며 추가 신호 대기."
+    )
+
+    parts = [f"이평선 {ma_txt}", mom_txt, vix_txt]
+    if vix_u_txt: parts.append(vix_u_txt)
+    parts.append(inr_txt)
+    if crude_txt: parts.append(crude_txt)
+    desc = ", ".join(parts) + f". {label} 판단 — {trend_comment}"
+
     return pct, label, emoji, desc
 
 
@@ -407,6 +416,28 @@ def main():
         if d < cutoff:
             del state[d]
     save_state(state)
+
+    # 시장데이터.json 저장 (대시보드 자동갱신용)
+    market_json = {
+        "updated": now_kst,
+        "nifty": data["current"],
+        "pct": data["pct"],
+        "ma_signal": data["ma_signal"],
+        "rsi": data["rsi"],
+        "mom4": data["mom4"],
+        "from_hi": data["from_hi"],
+        "india_vix": data["india_vix"],
+        "us_vix": data["us_vix"],
+        "crude": data["crude"],
+        "usdinr": data["usdinr"],
+        "score_pct": pct_score,
+        "score_label": sc_label,
+        "score_emoji": sc_emoji,
+        "score_desc": sc_desc,
+    }
+    with open("시장데이터.json", "w", encoding="utf-8") as f:
+        json.dump(market_json, f, ensure_ascii=False, indent=2)
+    print("시장데이터.json 저장 완료")
     print("완료")
 
 

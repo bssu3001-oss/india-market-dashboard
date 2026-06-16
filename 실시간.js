@@ -473,7 +473,67 @@
   };
 
   // ── 전체 실행 ──
+  // 시장데이터.json 로드 → 배지·종합신호 즉시 표시 (live API가 오면 자동 덮어씌움)
+  async function loadCachedMarketData() {
+    try {
+      const res = await fetch('시장데이터.json?t=' + Date.now());
+      if (!res.ok) return;
+      const d = await res.json();
+      if (!d || !d.nifty) return;
+
+      // 종합신호 즉시 표시
+      const scEmoji = document.getElementById('sc-emoji');
+      const scPct   = document.getElementById('sc-pct');
+      if (scEmoji) scEmoji.textContent = (d.score_emoji || '') + ' ' + (d.score_label || '');
+      if (scPct)   scPct.textContent   = (d.score_pct || 0) + '점';
+
+      // 기술지표 배지 — ma_signal 기준
+      function setB(id, cls, txt) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'badge ' + cls;
+        el.textContent = txt;
+      }
+      const ma = d.ma_signal || '';
+      setB('badge-ma', ma.includes('정배열') ? 'badge-g' : ma.includes('역배열') ? 'badge-r' : 'badge-y',
+           ma.includes('정배열') ? '정배열(상승)' : ma.includes('역배열') ? '역배열(하락)' : '혼조');
+
+      const rsi = d.rsi || 50;
+      setB('badge-rsi', rsi <= 40 ? 'badge-g' : rsi >= 70 ? 'badge-r' : 'badge-y',
+           rsi <= 40 ? `RSI ${rsi} 과매도` : rsi >= 70 ? `RSI ${rsi} 과매수` : `RSI ${rsi} 중립`);
+
+      const mom = d.mom4 || 0;
+      setB('badge-mom', mom >= 2 ? 'badge-g' : mom <= -2 ? 'badge-r' : 'badge-y',
+           mom >= 2 ? `모멘텀 +${mom}%` : mom <= -2 ? `모멘텀 ${mom}%` : `모멘텀 보합`);
+
+      const fhi = d.from_hi || 0;
+      setB('badge-pos', fhi <= -20 ? 'badge-g' : fhi >= -3 ? 'badge-r' : 'badge-y',
+           fhi <= -20 ? `고점대비 ${fhi}% 저점권` : fhi >= -3 ? `고점 근접 ${fhi}%` : `고점대비 ${fhi}%`);
+
+      // 매크로 배지 — India VIX, USD/INR, 유가
+      const vix_i = d.india_vix || 0;
+      if (vix_i) setB('badge-indiavix', vix_i < 15 ? 'badge-g' : vix_i > 22 ? 'badge-r' : 'badge-y',
+           `India VIX ${vix_i}`);
+
+      const usdinr = d.usdinr || 0;
+      if (usdinr) setB('badge-usdinr', usdinr < 83 ? 'badge-g' : usdinr > 87 ? 'badge-r' : 'badge-y',
+           `₹${usdinr}`);
+
+      const crude = d.crude || 0;
+      if (crude) setB('badge-crude', crude < 75 ? 'badge-g' : crude > 85 ? 'badge-r' : 'badge-y',
+           `유가 $${crude}`);
+
+      try { if (typeof recalcScorecard === 'function') recalcScorecard(); } catch(e) {}
+      console.log('[시장데이터] 캐시 로드 완료:', d.updated);
+    } catch(e) {
+      console.log('[시장데이터] 캐시 없음 (처음 실행이거나 아직 생성 전)');
+    }
+  }
+
   async function runRealtime() {
+    // 캐시된 데이터로 즉시 초기 표시
+    await loadCachedMarketData();
+
     let niftyMeta = null;
     try {
       niftyMeta = await refreshChart('chartNifty', '%5ENSEI');
