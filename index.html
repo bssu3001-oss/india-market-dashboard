@@ -5,7 +5,258 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>인도 주식시장 대시보드</title>
   <style>
-    /* Task 2에서 추가 */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --text: #e8e8e8;
+      --text-muted: #888;
+      --green: #22c55e;
+      --red: #ef4444;
+      --accent: #f59e0b;
+      --blue: #3b82f6;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    #app { max-width: 480px; margin: 0 auto; padding: 12px; }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header h1 { font-size: 18px; font-weight: 700; }
+
+    .header-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-btns { display: flex; gap: 6px; }
+
+    .btn-sm {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn-sm:active { opacity: 0.7; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .index-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .index-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .index-name { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .index-price { font-size: 20px; font-weight: 700; }
+    .index-change { font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .index-meta { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+
+    .up { color: var(--green); }
+    .down { color: var(--red); }
+    .neutral { color: var(--text-muted); }
+
+    .signal-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .signal-buy { background: #16342a; color: var(--green); }
+    .signal-sell { background: #341616; color: var(--red); }
+    .signal-wait { background: #2a2a16; color: var(--accent); }
+
+    .score-bar-wrap { margin: 8px 0; }
+    .score-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+    .score-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+
+    .score-breakdown { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+    .score-item { background: var(--surface2); border-radius: 8px; padding: 8px; text-align: center; }
+    .score-item-label { font-size: 10px; color: var(--text-muted); }
+    .score-item-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+    .indicator-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .indicator-row:last-child { border-bottom: none; }
+    .indicator-label { color: var(--text-muted); font-size: 13px; }
+    .indicator-value { font-size: 13px; font-weight: 600; text-align: right; }
+
+    .indicator-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .badge-green { background: #16342a; color: var(--green); }
+    .badge-red { background: #341616; color: var(--red); }
+    .badge-yellow { background: #2a2a16; color: var(--accent); }
+
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .modal-box h2 { font-size: 16px; margin-bottom: 4px; }
+    .modal-box .modal-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+    .modal-box label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; margin-top: 12px; }
+
+    .modal-box input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .modal-box input:focus { border-color: var(--accent); }
+
+    .modal-box .btn-primary {
+      width: 100%;
+      margin-top: 16px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .chat-messages {
+      max-height: 240px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+
+    .chat-msg {
+      padding: 8px 12px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .chat-msg.user { background: var(--surface2); text-align: right; }
+    .chat-msg.ai { background: #1a2a1a; border: 1px solid #2e4a2e; }
+
+    .chat-input-row { display: flex; gap: 6px; }
+
+    .chat-input-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .chat-input-row input:focus { border-color: var(--blue); }
+
+    .chat-input-row button {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #loading { text-align: center; padding: 60px 20px; }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error-msg {
+      background: #341616;
+      border: 1px solid #ef4444;
+      color: var(--red);
+      padding: 14px;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -14,18 +265,22 @@
       <h1>🇮🇳 인도 시장 대시보드</h1>
       <div class="header-meta">
         <span id="last-updated">--</span>
-        <button id="refresh-btn" onclick="loadData()">🔄 새로고침</button>
+        <div class="header-btns">
+          <button class="btn-sm" onclick="loadData()">🔄 새로고침</button>
+          <button class="btn-sm" onclick="showModal()">⚙️ 설정</button>
+        </div>
       </div>
     </header>
 
     <div id="api-modal" class="modal hidden">
       <div class="modal-box">
-        <h2>API 키 입력</h2>
-        <label>TwelveData API 키</label>
+        <h2>API 키 설정</h2>
+        <p class="modal-sub">키는 이 기기에만 저장됩니다.</p>
+        <label>TwelveData API 키 <span style="color:var(--red)">*</span></label>
         <input type="text" id="td-key-input" placeholder="your_twelvedata_api_key" />
-        <label>Anthropic API 키 (선택)</label>
+        <label>Anthropic API 키 (AI 채팅용, 선택)</label>
         <input type="text" id="anthropic-key-input" placeholder="sk-ant-..." />
-        <button onclick="saveKeys()">저장 후 시작</button>
+        <button class="btn-primary" onclick="saveKeys()">저장 후 시작</button>
       </div>
     </div>
 
@@ -35,19 +290,534 @@
       <section id="technical-section"></section>
       <section id="macro-section"></section>
       <section id="currency-section"></section>
-      <section id="chat-section"></section>
+      <section id="chat-section">
+        <div class="card">
+          <div class="card-title">AI 분석 채팅</div>
+          <div id="chat-messages" class="chat-messages">
+            <div class="chat-msg ai">안녕하세요! 인도 시장 현황에 대해 질문해 주세요.</div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="예: 지금 매수 타이밍인가요?" onkeydown="if(event.key==='Enter')sendChat()" />
+            <button onclick="sendChat()">전송</button>
+          </div>
+          <div id="chat-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none"></div>
+        </div>
+      </section>
     </div>
 
     <div id="loading" class="hidden">
       <div class="spinner"></div>
-      <p>데이터 불러오는 중...</p>
+      <p style="color:var(--text-muted);font-size:13px">데이터 불러오는 중...</p>
     </div>
 
     <div id="error-msg" class="hidden"></div>
   </div>
 
   <script>
-    // Task 3+ 에서 추가
+    // ─── API Key Management ───────────────────────────────────────────────────
+
+    const KEYS = {
+      td: () => localStorage.getItem('td_api_key'),
+      anthropic: () => localStorage.getItem('anthropic_api_key'),
+    };
+
+    function saveKeys() {
+      const tdKey = document.getElementById('td-key-input').value.trim();
+      const anthropicKey = document.getElementById('anthropic-key-input').value.trim();
+      if (!tdKey) { alert('TwelveData API 키를 입력해주세요.'); return; }
+      localStorage.setItem('td_api_key', tdKey);
+      if (anthropicKey) localStorage.setItem('anthropic_api_key', anthropicKey);
+      hideModal();
+      loadData();
+    }
+
+    function showModal() {
+      const tdKey = KEYS.td() || '';
+      const anthropicKey = KEYS.anthropic() || '';
+      document.getElementById('td-key-input').value = tdKey;
+      document.getElementById('anthropic-key-input').value = anthropicKey;
+      document.getElementById('api-modal').classList.remove('hidden');
+    }
+
+    function hideModal() {
+      document.getElementById('api-modal').classList.add('hidden');
+    }
+
+    function showLoading() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('error-msg').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').classList.add('hidden');
+      const el = document.getElementById('error-msg');
+      el.innerHTML = msg;
+      el.classList.remove('hidden');
+    }
+
+    // ─── Formatting Helpers ──────────────────────────────────────────────────
+
+    function fmt(num, decimals = 2) {
+      if (num === null || num === undefined || isNaN(num) || num === 0) return '--';
+      return num.toLocaleString('ko-KR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    function changeClass(val) {
+      if (val > 0) return 'up';
+      if (val < 0) return 'down';
+      return 'neutral';
+    }
+
+    function sign(val) { return val > 0 ? '+' : ''; }
+
+    // ─── TwelveData API ──────────────────────────────────────────────────────
+
+    const TD_BASE = 'https://api.twelvedata.com';
+
+    async function fetchQuotes(symbols) {
+      const key = KEYS.td();
+      const url = `${TD_BASE}/quote?symbol=${symbols.join(',')}&apikey=${key}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`TwelveData HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'error') throw new Error(data.message);
+      if (symbols.length === 1) return { [symbols[0]]: data };
+      return data;
+    }
+
+    async function fetchRSI(symbol) {
+      const key = KEYS.td();
+      const url = `${TD_BASE}/rsi?symbol=${symbol}&interval=1day&time_period=14&outputsize=1&apikey=${key}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`RSI HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'error') return null;
+      return parseFloat(data.values?.[0]?.rsi) || null;
+    }
+
+    async function fetchEMA(symbol, period) {
+      const key = KEYS.td();
+      const url = `${TD_BASE}/ema?symbol=${symbol}&interval=1day&time_period=${period}&outputsize=1&apikey=${key}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`EMA HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'error') return null;
+      return parseFloat(data.values?.[0]?.ema) || null;
+    }
+
+    // ─── Main Data Load ──────────────────────────────────────────────────────
+
+    let _ctx = { nifty: {}, sensex: {}, macro: {}, technical: {}, signal: {} };
+
+    async function loadData() {
+      showLoading();
+      try {
+        const SYMBOLS = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'BCO/USD', 'DXY', 'BANKNIFTY', 'INDIAVIX'];
+
+        const [quotes, rsi, ema20, ema50] = await Promise.all([
+          fetchQuotes(SYMBOLS),
+          fetchRSI('NIFTY50').catch(() => null),
+          fetchEMA('NIFTY50', 20).catch(() => null),
+          fetchEMA('NIFTY50', 50).catch(() => null),
+        ]);
+
+        const q = (sym) => quotes[sym] || {};
+        const pf = (v) => parseFloat(v) || 0;
+
+        const nifty = {
+          price: pf(q('NIFTY50').close || q('NIFTY50').price),
+          change: pf(q('NIFTY50').change),
+          changePct: pf(q('NIFTY50').percent_change),
+          open: pf(q('NIFTY50').open),
+          high: pf(q('NIFTY50').high),
+          low: pf(q('NIFTY50').low),
+          high52w: pf(q('NIFTY50').fifty_two_week?.high),
+          low52w: pf(q('NIFTY50').fifty_two_week?.low),
+        };
+
+        const sensex = {
+          price: pf(q('SENSEX').close || q('SENSEX').price),
+          change: pf(q('SENSEX').change),
+          changePct: pf(q('SENSEX').percent_change),
+          open: pf(q('SENSEX').open),
+          high: pf(q('SENSEX').high),
+          low: pf(q('SENSEX').low),
+        };
+
+        const macro = {
+          usdInr: pf(q('USD/INR').close || q('USD/INR').price),
+          usdInrChange: pf(q('USD/INR').percent_change),
+          inrKrw: pf(q('INR/KRW').close || q('INR/KRW').price),
+          inrKrwChange: pf(q('INR/KRW').percent_change),
+          gold: pf(q('XAU/USD').close || q('XAU/USD').price),
+          goldChange: pf(q('XAU/USD').percent_change),
+          oil: pf(q('BCO/USD').close || q('BCO/USD').price),
+          oilChange: pf(q('BCO/USD').percent_change),
+          dxy: pf(q('DXY').close || q('DXY').price),
+          dxyChange: pf(q('DXY').percent_change),
+          bankNifty: pf(q('BANKNIFTY').close || q('BANKNIFTY').price),
+          bankNiftyChange: pf(q('BANKNIFTY').percent_change),
+          indiaVix: pf(q('INDIAVIX').close || q('INDIAVIX').price),
+          indiaVixChange: pf(q('INDIAVIX').percent_change),
+        };
+
+        const technical = {
+          rsi,
+          ema20,
+          ema50,
+          currentPrice: nifty.price,
+          high52w: nifty.high52w,
+          low52w: nifty.low52w,
+          momentum1d: nifty.changePct,
+        };
+
+        const sigData = calcSignal(technical, macro);
+
+        _ctx = { nifty, sensex, macro, technical, signal: sigData };
+
+        renderIndices(nifty, sensex);
+        renderSignal(sigData);
+        renderTechnical(technical);
+        renderMacro(macro);
+        renderCurrency(macro);
+
+        document.getElementById('last-updated').textContent =
+          '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+
+        showDashboard();
+      } catch (err) {
+        console.error(err);
+        if (err.message.includes('401') || err.message.includes('403') || err.message.includes('invalid')) {
+          showError('API 키가 올바르지 않습니다. ⚙️ 설정을 눌러 키를 다시 입력해주세요.<br><br>오류: ' + err.message);
+          localStorage.removeItem('td_api_key');
+        } else if (err.message.includes('429')) {
+          showError('API 호출 한도를 초과했습니다. 잠시 후 🔄 새로고침 해주세요.');
+        } else {
+          showError('데이터 로드 실패: ' + err.message + '<br><br>🔄 새로고침 하거나 ⚙️ 설정에서 API 키를 확인해주세요.');
+        }
+      }
+    }
+
+    // ─── Render: Market Indices ──────────────────────────────────────────────
+
+    function renderIndices(nifty, sensex) {
+      document.getElementById('indices-section').innerHTML = `
+        <div class="card">
+          <div class="card-title">시장 지수</div>
+          <div class="index-grid">
+            <div class="index-card">
+              <div class="index-name">NIFTY 50 <span style="font-size:10px">(NSE)</span></div>
+              <div class="index-price">${fmt(nifty.price, 2)}</div>
+              <div class="index-change ${changeClass(nifty.changePct)}">
+                ${sign(nifty.changePct)}${fmt(nifty.change, 2)} (${sign(nifty.changePct)}${fmt(nifty.changePct, 2)}%)
+              </div>
+              <div class="index-meta">
+                시가: ${fmt(nifty.open)}<br>
+                고: ${fmt(nifty.high)} / 저: ${fmt(nifty.low)}
+              </div>
+            </div>
+            <div class="index-card">
+              <div class="index-name">SENSEX <span style="font-size:10px">(BSE)</span></div>
+              <div class="index-price">${fmt(sensex.price, 2)}</div>
+              <div class="index-change ${changeClass(sensex.changePct)}">
+                ${sign(sensex.changePct)}${fmt(sensex.change, 2)} (${sign(sensex.changePct)}${fmt(sensex.changePct, 2)}%)
+              </div>
+              <div class="index-meta">
+                시가: ${fmt(sensex.open)}<br>
+                고: ${fmt(sensex.high)} / 저: ${fmt(sensex.low)}
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ─── Signal Calculation ──────────────────────────────────────────────────
+
+    function calcSignal(technical, macro) {
+      let techScore = 0;
+      let macroScore = 0;
+
+      if (technical.rsi) {
+        if (technical.rsi < 40) techScore += 1.5;
+        else if (technical.rsi > 65) techScore -= 1.5;
+        else techScore += 0.5;
+      }
+
+      if (technical.ema20 && technical.ema50 && technical.currentPrice) {
+        if (technical.currentPrice > technical.ema20 && technical.ema20 > technical.ema50) techScore += 1.5;
+        else if (technical.currentPrice < technical.ema20) techScore -= 1.0;
+      }
+
+      if (technical.momentum1d > 0.5) techScore += 0.5;
+      else if (technical.momentum1d < -0.5) techScore -= 0.5;
+
+      if (macro.indiaVix) {
+        if (macro.indiaVix < 15) macroScore += 1.0;
+        else if (macro.indiaVix > 20) macroScore -= 1.0;
+      }
+
+      if (macro.usdInrChange < -0.3) macroScore += 1.0;
+      else if (macro.usdInrChange > 0.5) macroScore -= 1.0;
+
+      if (macro.dxyChange < 0) macroScore += 0.5;
+      else macroScore -= 0.3;
+
+      const raw = techScore + macroScore;
+      const score = Math.max(0, Math.min(100, Math.round((raw + 6) / 12 * 100)));
+
+      let judgment, badgeClass;
+      if (score >= 60) { judgment = '매수'; badgeClass = 'signal-buy'; }
+      else if (score <= 40) { judgment = '매도'; badgeClass = 'signal-sell'; }
+      else { judgment = '관망'; badgeClass = 'signal-wait'; }
+
+      return { score, judgment, badgeClass, techScore, macroScore };
+    }
+
+    // ─── Render: Signal ──────────────────────────────────────────────────────
+
+    function renderSignal(sig) {
+      const barColor = sig.score >= 60 ? 'var(--green)' : sig.score <= 40 ? 'var(--red)' : 'var(--accent)';
+      document.getElementById('signal-section').innerHTML = `
+        <div class="card">
+          <div class="card-title">매수 신호 종합</div>
+          <span class="signal-badge ${sig.badgeClass}">${sig.judgment}</span>
+          <div class="score-bar-wrap">
+            <div class="score-label">
+              <span>신호 강도</span><span>${sig.score}/100</span>
+            </div>
+            <div class="score-bar">
+              <div class="score-fill" style="width:${sig.score}%;background:${barColor}"></div>
+            </div>
+          </div>
+          <div class="score-breakdown">
+            <div class="score-item">
+              <div class="score-item-label">기술적</div>
+              <div class="score-item-val ${sig.techScore >= 0 ? 'up' : 'down'}">${sig.techScore > 0 ? '+' : ''}${sig.techScore.toFixed(1)}</div>
+            </div>
+            <div class="score-item">
+              <div class="score-item-label">거시</div>
+              <div class="score-item-val ${sig.macroScore >= 0 ? 'up' : 'down'}">${sig.macroScore > 0 ? '+' : ''}${sig.macroScore.toFixed(1)}</div>
+            </div>
+            <div class="score-item">
+              <div class="score-item-label">뉴스</div>
+              <div class="score-item-val neutral">0.0</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ─── Render: Technical ───────────────────────────────────────────────────
+
+    function renderTechnical(t) {
+      const rsiLabel = t.rsi ? (t.rsi > 70 ? '과매수' : t.rsi < 30 ? '과매도' : '중립') : '--';
+      const rsiBadge = t.rsi ? (t.rsi > 70 ? 'badge-red' : t.rsi < 30 ? 'badge-green' : 'badge-yellow') : '';
+
+      let maLabel = '--', maBadge = 'badge-yellow';
+      if (t.ema20 && t.ema50 && t.currentPrice) {
+        if (t.currentPrice > t.ema20 && t.ema20 > t.ema50) { maLabel = '상승 배열'; maBadge = 'badge-green'; }
+        else if (t.currentPrice < t.ema20 && t.ema20 < t.ema50) { maLabel = '하락 배열'; maBadge = 'badge-red'; }
+        else { maLabel = '혼조'; maBadge = 'badge-yellow'; }
+      }
+
+      let posText = '--', posLabel = '--', posBadge = 'badge-yellow';
+      if (t.high52w && t.currentPrice) {
+        const belowHigh = (t.high52w - t.currentPrice) / t.high52w * 100;
+        posText = `고점 대비 -${fmt(belowHigh, 1)}%`;
+        if (belowHigh < 5) { posLabel = '고점 근접'; posBadge = 'badge-red'; }
+        else if (belowHigh < 15) { posLabel = '중간'; posBadge = 'badge-yellow'; }
+        else { posLabel = '저점 근접'; posBadge = 'badge-green'; }
+      }
+
+      const momBadge = t.momentum1d > 0 ? 'badge-green' : t.momentum1d < 0 ? 'badge-red' : 'badge-yellow';
+
+      document.getElementById('technical-section').innerHTML = `
+        <div class="card">
+          <div class="card-title">기술적 지표 (Nifty 50)</div>
+          <div class="indicator-row">
+            <span class="indicator-label">RSI (14일)</span>
+            <span class="indicator-value">
+              ${t.rsi ? fmt(t.rsi, 1) : '--'}
+              ${t.rsi ? `<span class="indicator-badge ${rsiBadge}">${rsiLabel}</span>` : ''}
+            </span>
+          </div>
+          <div class="indicator-row">
+            <span class="indicator-label">EMA 20 / 50</span>
+            <span class="indicator-value">
+              ${t.ema20 ? fmt(t.ema20, 0) : '--'} / ${t.ema50 ? fmt(t.ema50, 0) : '--'}
+              <span class="indicator-badge ${maBadge}">${maLabel}</span>
+            </span>
+          </div>
+          <div class="indicator-row">
+            <span class="indicator-label">52주 위치</span>
+            <span class="indicator-value">
+              ${posText}
+              <span class="indicator-badge ${posBadge}">${posLabel}</span>
+            </span>
+          </div>
+          <div class="indicator-row">
+            <span class="indicator-label">단기 모멘텀</span>
+            <span class="indicator-value ${changeClass(t.momentum1d)}">
+              ${sign(t.momentum1d)}${fmt(t.momentum1d, 2)}%
+              <span class="indicator-badge ${momBadge}">${t.momentum1d > 0 ? '상승' : t.momentum1d < 0 ? '하락' : '보합'}</span>
+            </span>
+          </div>
+        </div>`;
+    }
+
+    // ─── Render: Macro ───────────────────────────────────────────────────────
+
+    function renderMacro(m) {
+      const rows = [
+        { label: 'USD/INR', val: fmt(m.usdInr, 2), change: m.usdInrChange },
+        { label: 'DXY (달러 지수)', val: fmt(m.dxy, 2), change: m.dxyChange },
+        { label: '인도 VIX', val: fmt(m.indiaVix, 2), change: m.indiaVixChange },
+        { label: 'Nifty Bank', val: fmt(m.bankNifty, 0), change: m.bankNiftyChange },
+        { label: 'Brent 원유 ($/bbl)', val: fmt(m.oil, 2), change: m.oilChange },
+        { label: '금 ($/oz)', val: fmt(m.gold, 2), change: m.goldChange },
+      ];
+
+      document.getElementById('macro-section').innerHTML = `
+        <div class="card">
+          <div class="card-title">거시경제 지표</div>
+          ${rows.map(r => `
+            <div class="indicator-row">
+              <span class="indicator-label">${r.label}</span>
+              <span class="indicator-value">
+                ${r.val}
+                <span class="${changeClass(r.change)}" style="font-size:12px;font-weight:400">
+                  ${sign(r.change)}${fmt(r.change, 2)}%
+                </span>
+              </span>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    // ─── Render: Currency ────────────────────────────────────────────────────
+
+    function renderCurrency(m) {
+      const trend = m.usdInrChange > 0.5 ? '루피 급락' : m.usdInrChange < -0.5 ? '루피 강세' : '루피 안정';
+      const trendClass = m.usdInrChange > 0.5 ? 'down' : m.usdInrChange < -0.5 ? 'up' : 'neutral';
+
+      document.getElementById('currency-section').innerHTML = `
+        <div class="card">
+          <div class="card-title">환율 분석</div>
+          <div class="indicator-row">
+            <span class="indicator-label">루피 상태</span>
+            <span class="indicator-value ${trendClass}" style="font-weight:700">${trend}</span>
+          </div>
+          <div class="indicator-row">
+            <span class="indicator-label">USD/INR</span>
+            <span class="indicator-value">
+              ₹${fmt(m.usdInr, 2)}
+              <span class="${changeClass(m.usdInrChange)}" style="font-size:12px;font-weight:400">
+                ${sign(m.usdInrChange)}${fmt(m.usdInrChange, 2)}%
+              </span>
+            </span>
+          </div>
+          <div class="indicator-row">
+            <span class="indicator-label">INR/KRW</span>
+            <span class="indicator-value">
+              ₩${fmt(m.inrKrw, 4)}
+              <span class="${changeClass(m.inrKrwChange)}" style="font-size:12px;font-weight:400">
+                ${sign(m.inrKrwChange)}${fmt(m.inrKrwChange, 2)}%
+              </span>
+            </span>
+          </div>
+        </div>`;
+    }
+
+    // ─── AI Chat ─────────────────────────────────────────────────────────────
+
+    function buildContext() {
+      const { nifty, sensex, macro, technical, signal } = _ctx;
+      return `[현재 인도 시장 데이터 - ${new Date().toLocaleString('ko-KR')}]
+Nifty 50: ${fmt(nifty.price)} (${sign(nifty.changePct)}${fmt(nifty.changePct)}%)
+Sensex: ${fmt(sensex.price)} (${sign(sensex.changePct)}${fmt(sensex.changePct)}%)
+RSI(14): ${technical.rsi ? fmt(technical.rsi, 1) : 'N/A'}
+EMA20/50: ${technical.ema20 ? fmt(technical.ema20, 0) : 'N/A'} / ${technical.ema50 ? fmt(technical.ema50, 0) : 'N/A'}
+USD/INR: ₹${fmt(macro.usdInr, 2)} (${sign(macro.usdInrChange)}${fmt(macro.usdInrChange, 2)}%)
+India VIX: ${fmt(macro.indiaVix, 2)}
+DXY: ${fmt(macro.dxy, 2)} (${sign(macro.dxyChange)}${fmt(macro.dxyChange, 2)}%)
+금: $${fmt(macro.gold, 2)} (${sign(macro.goldChange)}${fmt(macro.goldChange, 2)}%)
+Brent 원유: $${fmt(macro.oil, 2)} (${sign(macro.oilChange)}${fmt(macro.oilChange, 2)}%)
+Nifty Bank: ${fmt(macro.bankNifty, 0)} (${sign(macro.bankNiftyChange)}${fmt(macro.bankNiftyChange, 2)}%)
+매수신호: ${signal.judgment} (${signal.score}/100) | 기술적 ${signal.techScore > 0 ? '+' : ''}${signal.techScore?.toFixed(1)} | 거시 ${signal.macroScore > 0 ? '+' : ''}${signal.macroScore?.toFixed(1)}`;
+    }
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      const question = input.value.trim();
+      if (!question) return;
+
+      const anthropicKey = KEYS.anthropic();
+      const chatErr = document.getElementById('chat-error');
+      chatErr.style.display = 'none';
+
+      if (!anthropicKey) {
+        chatErr.style.display = 'block';
+        chatErr.textContent = 'Anthropic API 키가 없습니다. ⚙️ 설정에서 키를 입력해주세요.';
+        return;
+      }
+
+      const messages = document.getElementById('chat-messages');
+      messages.innerHTML += `<div class="chat-msg user">${question}</div>`;
+      input.value = '';
+
+      const loadingEl = document.createElement('div');
+      loadingEl.className = 'chat-msg ai';
+      loadingEl.textContent = '분석 중...';
+      messages.appendChild(loadingEl);
+      messages.scrollTop = messages.scrollHeight;
+
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 512,
+            system: `당신은 인도 주식시장 전문 분석가입니다. 아래 실시간 시장 데이터를 바탕으로 한국어로 간결하게 답변해 주세요.\n\n${buildContext()}`,
+            messages: [{ role: 'user', content: question }],
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error?.message || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        loadingEl.textContent = data.content[0].text;
+      } catch (err) {
+        loadingEl.textContent = `오류: ${err.message}`;
+        loadingEl.style.color = 'var(--red)';
+      }
+
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+
+    function init() {
+      if (!KEYS.td()) {
+        showModal();
+      } else {
+        loadData();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
