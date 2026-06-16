@@ -426,20 +426,16 @@
       _isLoading = true;
       showLoading();
       try {
-        const SYMBOLS = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'BCO/USD', 'DXY', 'BANKNIFTY', 'INDIAVIX'];
+        // 무료 플랜: 분당 8크레딧. 심볼 1개 = 1크레딧.
+        const SYMBOLS = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'DXY'];
 
-        const [quotes, rsi, ema20, ema50] = await Promise.all([
-          fetchQuotes(SYMBOLS),
-          fetchRSI('NIFTY50').catch(() => null),
-          fetchEMA('NIFTY50', 20).catch(() => null),
-          fetchEMA('NIFTY50', 50).catch(() => null),
-        ]);
+        const quotes = await fetchQuotes(SYMBOLS);
+
+        const rsi = null, ema20 = null, ema50 = null;
 
         const q = (sym) => quotes[sym] || {};
 
-        // Check for per-symbol errors in batch response
-        const SYMBOLS_CHECK = ['NIFTY50', 'SENSEX', 'USD/INR', 'INR/KRW', 'XAU/USD', 'BCO/USD', 'DXY', 'BANKNIFTY', 'INDIAVIX'];
-        SYMBOLS_CHECK.forEach(sym => {
+        SYMBOLS.forEach(sym => {
           if (quotes[sym]?.status === 'error') {
             console.warn(`Symbol ${sym} error: ${quotes[sym].message}`);
           }
@@ -474,14 +470,11 @@
           inrKrwChange: pf(q('INR/KRW').percent_change),
           gold: pf(q('XAU/USD').close || q('XAU/USD').price),
           goldChange: pf(q('XAU/USD').percent_change),
-          oil: pf(q('BCO/USD').close || q('BCO/USD').price),
-          oilChange: pf(q('BCO/USD').percent_change),
           dxy: pf(q('DXY').close || q('DXY').price),
           dxyChange: pf(q('DXY').percent_change),
-          bankNifty: pf(q('BANKNIFTY').close || q('BANKNIFTY').price),
-          bankNiftyChange: pf(q('BANKNIFTY').percent_change),
-          indiaVix: pf(q('INDIAVIX').close || q('INDIAVIX').price),
-          indiaVixChange: pf(q('INDIAVIX').percent_change),
+          oil: 0, oilChange: 0,
+          bankNifty: 0, bankNiftyChange: 0,
+          indiaVix: 0, indiaVixChange: 0,
         };
 
         const technical = {
@@ -694,9 +687,6 @@
       const rows = [
         { label: 'USD/INR', val: fmt(m.usdInr, 2), change: m.usdInrChange },
         { label: 'DXY (달러 지수)', val: fmt(m.dxy, 2), change: m.dxyChange },
-        { label: '인도 VIX', val: fmt(m.indiaVix, 2), change: m.indiaVixChange },
-        { label: 'Nifty Bank', val: fmt(m.bankNifty, 0), change: m.bankNiftyChange },
-        { label: 'Brent 원유 ($/bbl)', val: fmt(m.oil, 2), change: m.oilChange },
         { label: '금 ($/oz)', val: fmt(m.gold, 2), change: m.goldChange },
       ];
 
