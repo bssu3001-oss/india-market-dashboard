@@ -200,6 +200,10 @@ USD/INR: {data['usdinr'] or 'N/A'} | 브렌트유: ${data['crude'] or 'N/A'}"""
         with urllib.request.urlopen(req, timeout=20) as r:
             result = json.loads(r.read())
         return result.get("content", [{}])[0].get("text", "").strip()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"  AI 코멘트 실패 ({e.code}): {body[:200]}")
+        return None
     except Exception as e:
         print(f"  AI 코멘트 실패: {e}")
         return None
