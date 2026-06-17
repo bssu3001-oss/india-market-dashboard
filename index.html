@@ -447,6 +447,9 @@ async function fetchAllLive() {
   if (inda) {
     const c=inda.pct>=0.5?'badge-g':inda.pct<=-0.5?'badge-r':'badge-b';
     setBadge('badge-inda',`$${fmt(inda.price)} ${arrow(inda.pct)}${Math.abs(inda.pct).toFixed(2)}% — ${inda.pct>=0.5?'상승':inda.pct<=-0.5?'하락':'보합'}`,c);
+    const cf=inda.pct>=0.5?'badge-g':inda.pct<=-0.5?'badge-r':'badge-b';
+    const lf=inda.pct>=0.5?'외국인 순유입':inda.pct<=-0.5?'외국인 순유출':'외국인 보합';
+    setBadge('badge-fii',`INDA ${arrow(inda.pct)}${Math.abs(inda.pct).toFixed(2)}% — ${lf}`,cf);
   }
   if (usdinr) {
     const c=usdinr.price>86?'badge-r':usdinr.price>84?'badge-y':'badge-g';

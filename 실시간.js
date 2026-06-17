@@ -397,10 +397,7 @@
       if (el) { el.textContent = text; el.className = 'badge ' + cls; }
     }
 
-    ko('badge-fii',
-      ['순매수','외국인 매수','자금 유입','외국인 사들','FII 매수'],
-      ['순매도','외국인 매도','자금 유출','외국인 팔','FII 매도','자금 이탈'],
-      '외국인 순매수', '외국인 순매도', '외국인 혼조');
+    // badge-fii는 INDA ETF 등락 기반으로 index.html에서 직접 설정
 
     ko('badge-rbi',
       ['금리 인하','완화','기준금리 내','RBI 인하','인하 기대'],
