@@ -3,10 +3,6 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: '0 0 * * 1-5'     # 평일 오전 9시 KST
-    - cron: '0 5 * * 1-5'     # 평일 오후 2시 KST
-    - cron: '30 10 * * 1-5'   # 평일 오후 7시 30분 KST
   workflow_dispatch:
 
 permissions:
@@ -19,37 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  notify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: 패키지 설치
-        run: pip install yfinance
-
-      - name: 알림 체크 & 카톡 발송
-        env:
-          KAKAO_REST_API_KEY:  ${{ secrets.KAKAO_REST_API_KEY }}
-          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
-          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python 알림체크.py
-
-      - name: 알림 상태 저장 (커밋)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add 알림상태.json 시장데이터.json || true
-          git diff --cached --quiet || git commit -m "알림상태·시장데이터 업데이트 [skip ci]"
-          git push || true
-
   deploy:
-    needs: notify
-    if: always()
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
