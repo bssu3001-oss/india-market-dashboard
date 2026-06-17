@@ -326,26 +326,26 @@
   async function fetchNewsItems() {
     const sets = await Promise.all(NEWS_FEEDS.map(async (f) => {
       try {
-        let items = [];
-        const xml = await proxyText(f.url, 10000);
-        if (xml) {
+        const parseXml = (xml) => {
           const doc = new DOMParser().parseFromString(xml, 'text/xml');
-          items = [...doc.querySelectorAll('item')].slice(0, 12).map((item) => {
+          return [...doc.querySelectorAll('item')].slice(0, 12).map((item) => {
             const g = (tag) => item.getElementsByTagName(tag)[0]?.textContent?.trim() || '';
             const title = g('title'); const link = g('link') || g('guid'); const pubDate = g('pubDate');
             return { title, link, source: f.source, isKo: !!f.isKo, ts: pubDate ? (new Date(pubDate).getTime() || 0) / 1000 : 0 };
           }).filter((x) => x.title && x.link.startsWith('http'));
-        }
-        if (!items.length) {
-          const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f.url)}`, { signal: AbortSignal.timeout(10000) });
-          if (r.ok) {
-            const d = await r.json();
-            items = (d.items || []).slice(0, 12).map((it) => ({
-              title: (it.title || '').trim(), link: (it.link || it.guid || '').trim(),
-              source: f.source, isKo: !!f.isKo, ts: it.pubDate ? (new Date(it.pubDate).getTime() || 0) / 1000 : 0,
-            })).filter((x) => x.title && x.link.startsWith('http'));
-          }
-        }
+        };
+        const parseRss = (d) => (d.items || []).slice(0, 12).map((it) => ({
+          title: (it.title || '').trim(), link: (it.link || it.guid || '').trim(),
+          source: f.source, isKo: !!f.isKo, ts: it.pubDate ? (new Date(it.pubDate).getTime() || 0) / 1000 : 0,
+        })).filter((x) => x.title && x.link.startsWith('http'));
+        // proxyText와 rss2json 동시 시작 — 먼저 데이터가 오는 쪽 사용
+        const items = await new Promise((resolve) => {
+          let done = false; let pending = 2;
+          const tryResolve = (r) => { if (!done && r.length) { done = true; resolve(r); } if (--pending === 0 && !done) resolve([]); };
+          proxyText(f.url, 10000).then(xml => tryResolve(xml ? parseXml(xml) : [])).catch(() => tryResolve([]));
+          fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f.url)}`, { signal: AbortSignal.timeout(10000) })
+            .then(r => r.ok ? r.json() : null).then(d => tryResolve(d ? parseRss(d) : [])).catch(() => tryResolve([]));
+        });
         return items;
       } catch (e) { return []; }
     }));
