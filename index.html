@@ -396,11 +396,11 @@ function setBadge(id, text, cls) {
 }
 
 async function fetchQuote(ticker) {
-  const data = await fetchYahoo(ticker, '1d', '5d');
+  const data = await fetchYahoo(ticker, '1d', '1d');
   if (!data) return null;
   const meta = data.meta;
   const price = meta.regularMarketPrice;
-  const prev = meta.regularMarketPreviousClose || meta.chartPreviousClose || meta.previousClose || price;
+  const prev = meta.chartPreviousClose || meta.previousClose || price;
   return {
     price, prev,
     pct: prev?(price-prev)/prev*100:0,
