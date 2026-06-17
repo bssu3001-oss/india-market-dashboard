@@ -78,7 +78,7 @@
 
   // 구간 정의 (대시보드 탭과 1:1)
   const RANGE_DEFS = [
-    { key: 'd1',  interval: '5m',  range: '1d', mode: 'time' },
+    { key: 'd1',  interval: '1d',  range: '5d', mode: 'date' },
     { key: 'd5',  interval: '1d',  range: '5d', mode: 'date' },
     { key: 'd30', interval: '1d',  range: '1mo', mode: 'date' },
     { key: 'mo3', interval: '1d',  range: '3mo', mode: 'date' },
@@ -549,13 +549,23 @@
     // 한국어 뉴스로 뉴스 배지 자동 분류 (API 키 불필요)
     try { updateNewsBadgesFromKorean(); } catch (e) {}
 
-    // 기술지표 + AI 차트분석 (뉴스 이슈 반영)
+    // 기술지표 + AI 차트분석 — 주봉 직접 fetch (window._charts 의존 제거)
     try {
-      const c = window._charts && window._charts['chartNifty'];
-      const weekly = c && c.data && c.data.yr1 && c.data.yr1.prices;
-      if (weekly) {
-        updateTechnicals(niftyMeta, weekly);
-        buildAnalysis('Nifty 50', weekly, c.data.d5 && c.data.d5.prices, niftyMeta, 1);
+      const url1y = 'https://query2.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1wk&range=1y';
+      const j1y = await proxyJSON(url1y, 9000);
+      if (j1y && j1y.chart && j1y.chart.result && j1y.chart.result[0]) {
+        const res1y = j1y.chart.result[0];
+        const weekly = (res1y.indicators.quote[0].close || []).filter(p => p != null);
+        if (!niftyMeta) niftyMeta = res1y.meta;
+        if (weekly.length >= 6) {
+          updateTechnicals(niftyMeta, weekly);
+          const url5d = 'https://query2.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=5d';
+          const j5d = await proxyJSON(url5d, 6000);
+          const d5prices = (j5d && j5d.chart && j5d.chart.result && j5d.chart.result[0])
+            ? (j5d.chart.result[0].indicators.quote[0].close || []).filter(p => p != null)
+            : null;
+          buildAnalysis('Nifty 50', weekly, d5prices, niftyMeta, 1);
+        }
       }
     } catch (e) {}
 

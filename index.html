@@ -352,7 +352,7 @@ async function fetchYahoo(ticker, interval, range) {
 
 async function loadChart(period) {
   if (_chartCache[period]) return _chartCache[period];
-  const cfg = {d1:{i:'5m',r:'1d'},d5:{i:'1d',r:'5d'},d30:{i:'1d',r:'1mo'},mo3:{i:'1d',r:'3mo'},mo6:{i:'1wk',r:'6mo'},yr1:{i:'1wk',r:'1y'}};
+  const cfg = {d1:{i:'1d',r:'5d'},d5:{i:'1d',r:'5d'},d30:{i:'1d',r:'1mo'},mo3:{i:'1d',r:'3mo'},mo6:{i:'1wk',r:'6mo'},yr1:{i:'1wk',r:'1y'}};
   const c = cfg[period];
   // ^NSEI(실제 지수) 사용 → 오늘 날짜까지 표시, INDA 환산 불필요
   const data = await fetchYahoo('^NSEI', c.i, c.r);
@@ -363,9 +363,7 @@ async function loadChart(period) {
   ts.forEach((t,i) => {
     if (closes[i] == null) return;
     const d = new Date(t*1000);
-    const lbl = period==='d1'
-      ? d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
-      : `${d.getMonth()+1}/${d.getDate()}`;
+    const lbl = `${d.getMonth()+1}/${d.getDate()}`;
     labels.push(lbl);
     prices.push(Math.round(closes[i]));
   });
@@ -398,11 +396,11 @@ function setBadge(id, text, cls) {
 }
 
 async function fetchQuote(ticker) {
-  const data = await fetchYahoo(ticker, '1d', '1d');
+  const data = await fetchYahoo(ticker, '1d', '5d');
   if (!data) return null;
   const meta = data.meta;
   const price = meta.regularMarketPrice;
-  const prev = meta.chartPreviousClose || meta.previousClose || price;
+  const prev = meta.regularMarketPreviousClose || meta.chartPreviousClose || meta.previousClose || price;
   return {
     price, prev,
     pct: prev?(price-prev)/prev*100:0,
@@ -779,7 +777,7 @@ NIFTY 50: ${n?fmt(n.price)+` (${n.pct>=0?'+':''}${n.pct.toFixed(2)}%)`:'N/A'}
 }
 
 document.getElementById('ai-q').addEventListener('keydown',e=>{if(e.key==='Enter')askAI();});
-if (!getKey()) document.getElementById('key-setup').style.display='block';
+// API 키 폼은 사용자가 '키 변경' 버튼을 클릭할 때만 표시
 
 async function init() {
   const chartData = await loadChart('d1');
