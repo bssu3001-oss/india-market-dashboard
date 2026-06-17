@@ -228,22 +228,11 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
   <hr class="divider">
 
   <div class="section-label">매수 타이밍 가이드</div>
-  <div class="action action-hold" id="ag-now">
-    <div class="action-title" id="ag-now-title">📌 지금 — 분석 중</div>
-    <div class="action-desc" id="ag-now-desc">데이터 로딩 후 AI가 현황을 분석합니다.</div>
-  </div>
-  <div class="action action-buy" id="ag-buy1">
-    <div class="action-title" id="ag-buy1-title">🟢 1차 매수 조건</div>
-    <div class="action-desc" id="ag-buy1-desc">데이터 로딩 후 AI가 조건을 생성합니다.</div>
-  </div>
-  <div class="action action-buy" id="ag-buy2">
-    <div class="action-title" id="ag-buy2-title">🟢 2차 매수 조건</div>
-    <div class="action-desc" id="ag-buy2-desc">데이터 로딩 후 AI가 조건을 생성합니다.</div>
-  </div>
-  <div class="action action-sell" id="ag-sell">
-    <div class="action-title" id="ag-sell-title">🔴 손절 조건</div>
-    <div class="action-desc" id="ag-sell-desc">데이터 로딩 후 AI가 조건을 생성합니다.</div>
-  </div>
+  <div class="card" id="buy-checklist" style="font-size:13px;">데이터 로딩 중...</div>
+  <div style="display:none" id="ag-now"><div id="ag-now-title"></div><div id="ag-now-desc"></div></div>
+  <div style="display:none" id="ag-buy1"><div id="ag-buy1-title"></div><div id="ag-buy1-desc"></div></div>
+  <div style="display:none" id="ag-buy2"><div id="ag-buy2-title"></div><div id="ag-buy2-desc"></div></div>
+  <div style="display:none" id="ag-sell"><div id="ag-sell-title"></div><div id="ag-sell-desc"></div></div>
 
   <hr class="divider">
 
@@ -528,6 +517,7 @@ async function fetchAllLive() {
         belowHigh<5?'badge-r':belowHigh<15?'badge-y':'badge-g');
     }
     recalcScorecard();
+    buildChecklist();
     // 분석 텍스트는 실시간.js가 뉴스 로드 후 처리하므로 여기선 생략
   });
 
@@ -562,6 +552,39 @@ async function fetchNews() {
 
   recalcScorecard();
   // 분석 텍스트는 실시간.js가 뉴스 로드 후 처리하므로 여기선 생략
+}
+
+function buildChecklist() {
+  const d = _liveData;
+  if (!d || !d.nifty) return;
+  const cls = id => document.getElementById(id)?.className || '';
+  const txt = id => document.getElementById(id)?.textContent || '--';
+  const isG = c => c.includes('badge-g');
+  const isR = c => c.includes('badge-r');
+  const maCls = cls('badge-ma'), momCls = cls('badge-mom');
+  const vix = d.indiavix?.price || 0;
+  const usdInr = d.usdinr?.price || 0;
+  const indaPct = d.inda?.pct ?? null;
+  const eemPct = d.eem?.pct ?? null;
+  const items = [
+    { label:'이평선 배열', val: txt('badge-ma'), ok: isG(maCls), warn: !isR(maCls) },
+    { label:'4주 모멘텀', val: txt('badge-mom'), ok: isG(momCls), warn: !isR(momCls) },
+    { label:'India VIX (공포지수)', val: vix ? vix.toFixed(1) : '--', ok: vix>0&&vix<15, warn: vix>0&&vix<20 },
+    { label:'USD/INR (루피 환율)', val: usdInr ? '₹'+usdInr.toFixed(2) : '--', ok: usdInr>0&&usdInr<84, warn: usdInr>0&&usdInr<87 },
+    { label:'외국인 자금 (INDA)', val: indaPct!=null?(indaPct>=0?'▲':'▼')+Math.abs(indaPct).toFixed(2)+'%':'--', ok: indaPct!=null&&indaPct>=0.5, warn: indaPct!=null&&indaPct>-0.5 },
+    { label:'신흥국 흐름 (EEM)', val: eemPct!=null?(eemPct>=0?'▲':'▼')+Math.abs(eemPct).toFixed(2)+'%':'--', ok: eemPct!=null&&eemPct>=0.5, warn: eemPct!=null&&eemPct>-0.5 },
+  ];
+  const green = items.filter(i=>i.ok).length;
+  const score = green + items.filter(i=>!i.ok&&i.warn).length*0.5;
+  const [verdict, vBg, vColor] = green>=4
+    ? ['✅ 매수 적극 검토 — 주요 조건 대부분 충족','var(--buy-bg)','var(--buy-text)']
+    : score>=3
+    ? ['⚡ 분할매수 검토 — 소량 진입 가능, 추가 조건 확인 권장','var(--warn-bg)','var(--warn-text)']
+    : ['⏸ 관망 — 조건 불충분, 추가 신호 대기','var(--sell-bg)','var(--sell-text)'];
+  const scoreColor = green>=4?'var(--buy-text)':score>=3?'var(--warn-text)':'var(--sell-text)';
+  const el = document.getElementById('buy-checklist');
+  if (!el) return;
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="font-size:13px;font-weight:700;color:var(--text1);">지금 살까요?</span><span style="font-size:13px;font-weight:700;color:${scoreColor};">${green}/${items.length} 충족</span></div>${items.map(i=>{const ic=i.ok?'✅':i.warn?'⚡':'❌';const c=i.ok?'var(--buy-text)':i.warn?'var(--warn-text)':'var(--sell-text)';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">${ic} ${i.label}</span><span style="font-size:12px;font-weight:600;color:${c};">${i.val}</span></div>`}).join('')}<div style="margin-top:12px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;background:${vBg};color:${vColor};">${verdict}</div>`;
 }
 
 function recalcScorecard() {
