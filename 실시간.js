@@ -394,10 +394,34 @@
 
   // ── 한국어 뉴스 키워드로 뉴스 배지 자동 분류 (API 키 불필요) ──
   function updateNewsBadgesFromKorean() {
-    const items = window.__majorNewsItems || [];
+    const items = (window.__majorNewsItems || []).length
+      ? (window.__majorNewsItems || [])
+      : (window.__newsForAnalysis || []).map(t => ({ ko: t, title: t }));
     if (!items.length) return;
     const all = items.map(n => (n.ko || n.title || '')).join(' ');
 
+    const relKw = {
+      'badge-rbi':   ['rbi','금리','기준금리','긴축','완화','피벗','통화정책','인도중앙은행'],
+      'badge-cpi':   ['물가','cpi','인플레','소비자물가','인플레이션'],
+      'badge-gdp':   ['gdp','성장률','경제성장','경기','성장'],
+      'badge-fed':   ['연준','fed','파월','fomc','달러','금리'],
+      'badge-trade': ['무역','관세','tariff','수출','수입','통상'],
+      'badge-geo':   ['전쟁','분쟁','지정학','휴전','군사','파키스탄','중국'],
+    };
+    function cleanTitle2(t) { return (t||'').replace(/\[.*?\]\s*/,'').replace(/\s*[-–]\s*\S+$/, '').trim(); }
+    function trimTitle2(t) { return t.length > 30 ? t.slice(0, 30) + '…' : t; }
+    const latestHeadline = items.length ? trimTitle2(cleanTitle2(items[0].ko || items[0].title || '')) : null;
+
+    function findRelatedHeadline(searchKws) {
+      for (const kw of searchKws) {
+        const found = items.find(n => (n.ko || n.title || '').toLowerCase().includes(kw.toLowerCase()));
+        if (found) {
+          const title = (found.ko || found.title || '').replace(/\[.*?\]\s*/,'').replace(/\s*[-–]\s*\S+$/, '').trim();
+          return title.length > 30 ? title.slice(0, 30) + '…' : title;
+        }
+      }
+      return null;
+    }
     function ko(id, gKw, rKw, gT, rT, nT) {
       const isG = gKw.some(k => all.includes(k));
       const isR = rKw.some(k => all.includes(k));
@@ -405,7 +429,7 @@
       if      (isG && !isR) { cls = 'badge-g'; text = gT; }
       else if (isR && !isG) { cls = 'badge-r'; text = rT; }
       else if (isG && isR)  { cls = 'badge-y'; text = nT; }
-      else                  { cls = 'badge-b'; text = '뉴스 없음'; }
+      else { cls = 'badge-b'; const _h = findRelatedHeadline(relKw[id] || []); if (!_h) { continue; } text = _h; }
       const el = document.getElementById(id);
       if (el) { el.textContent = text; el.className = 'badge ' + cls; }
     }
