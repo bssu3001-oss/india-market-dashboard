@@ -570,7 +570,7 @@ async function fetchNews() {
   window.__newsForAnalysis = allTitles;
 
   recalcScorecard();
-  if (typeof updateNewsBadgesFromKorean === 'function') try { updateNewsBadgesFromKorean(); } catch(e) {}
+  setNewsBadgesDirect(allTitles);
   const note = document.getElementById('news-live-note');
   if (note) note.textContent = window.__newsCached ? '* 최근 저장된 뉴스 표시 중 (실시간 로드 실패)' : '* 뉴스 헤드라인 기반 자동 분류';
 }
@@ -606,6 +606,70 @@ function buildChecklist() {
   const el = document.getElementById('buy-checklist');
   if (!el) return;
   el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><span style="font-size:13px;font-weight:700;color:var(--text1);">지금 살까요?</span><span style="font-size:13px;font-weight:700;color:${scoreColor};">${green}/${items.length} 충족</span></div>${items.map(i=>{const ic=i.ok?'✅':i.warn?'⚡':'❌';const c=i.ok?'var(--buy-text)':i.warn?'var(--warn-text)':'var(--sell-text)';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border);"><span style="color:var(--text2);">${ic} ${i.label}</span><span style="font-size:12px;font-weight:600;color:${c};">${i.val}</span></div>`}).join('')}<div style="margin-top:12px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;background:${vBg};color:${vColor};">${verdict}</div>`;
+}
+
+function setNewsBadgesDirect(titles) {
+  if (!titles || !titles.length) return;
+  const all = titles.join(' ').toLowerCase();
+  function cleanT(t) { return t.replace(/\[.*?\]\s*/,'').replace(/\s*[-\u2013]\s*\S+$/, '').trim(); }
+  function trimT(t) { return t.length > 30 ? t.slice(0,30)+'…' : t; }
+  function findKw(kws) {
+    for (const kw of kws) {
+      const f = titles.find(t => t.toLowerCase().includes(kw));
+      if (f) return trimT(cleanT(f));
+    }
+    return null;
+  }
+  const cfg = [
+    ['badge-rbi',
+      ['금리 인하','rbi 완화','통화 완화','피벗','rbi 인하'],
+      ['금리 인상','rbi 긴축','매파','rbi 인상','긴축'],
+      'RBI 완화(호재)','RBI 긴축(악재)','RBI 혼조',
+      ['rbi','금리','인도중앙은행','통화정책','기준금리'],
+      'RBI 정책 관망'],
+    ['badge-cpi',
+      ['물가 안정','인플레 완화','물가 하락','물가 둔화','cpi 하락'],
+      ['물가 상승','인플레 급등','물가 급등','cpi 상승','인플레 우려'],
+      '물가 안정(호재)','물가 상승(악재)','물가 혼조',
+      ['물가','cpi','인플레','소비자물가'],
+      '물가 혼조'],
+    ['badge-gdp',
+      ['gdp 성장','경제성장','성장률 상승','경기 호조','경기 반등'],
+      ['gdp 둔화','성장 둔화','경기 침체','성장률 하락'],
+      'GDP 성장(호재)','GDP 둔화(악재)','GDP 혼조',
+      ['gdp','성장률','경제성장','경기'],
+      'GDP 혼조'],
+    ['badge-fed',
+      ['연준 인하','금리 인하','파숳 완화','연준 완화','연준 피벗'],
+      ['연준 인상','연준 긴축','파숳 매파','hawkish'],
+      '연준 완화(호재)','연준 긴축(악재)','연준 불확실',
+      ['연준','fed','파숳','fomc','달러','금리'],
+      '연준 불확실'],
+    ['badge-trade',
+      ['무역 합의','관세 완화','수출 증가','무역 타결'],
+      ['관세 부과','무역 갈등','수출 감소','관세 인상'],
+      '무역 호조(호재)','무역 리스크(악재)','무역 혼조',
+      ['무역','관세','tariff','수출','통상'],
+      '무역 주시'],
+    ['badge-geo',
+      ['지정학 완화','휴전','평화','긴장 완화'],
+      ['전쟁','분쟁','군사 충돌','지정학 위기','긴장 고조'],
+      '지정학 안정(호재)','지정학 리스크(악재)','지정학 혼조',
+      ['전쟁','분쟁','지정학','휴전','군사'],
+      '지정학 주시'],
+  ];
+  cfg.forEach(([id, gKw, rKw, gT, rT, nT, relKw, dT]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isG = gKw.some(k => all.includes(k));
+    const isR = rKw.some(k => all.includes(k));
+    let text, cls;
+    if      (isG && !isR) { text = gT; cls = 'badge-g'; }
+    else if (isR && !isG) { text = rT; cls = 'badge-r'; }
+    else if (isG && isR)  { text = nT; cls = 'badge-y'; }
+    else { const h = findKw(relKw); if (h) { text = h; cls = 'badge-b'; } else { text = dT; cls = 'badge-y'; } }
+    el.textContent = text; el.className = 'badge ' + cls;
+  });
 }
 
 function recalcScorecard() {
