@@ -282,6 +282,63 @@ def calc_scorecard(data, news_titles=None):
     return pct, label, emoji, desc
 
 
+
+# ── AI 핵심 필드 생성 (Claude API) ──
+def gen_ai_fields(data, news_titles, anthropic_key):
+    # 기본값 (API 없을 때 폴백)
+    ma = data['ma_signal']
+    rsi = data['rsi']
+    mom = data['mom4']
+    vix_i = data['india_vix'] or 0
+    usdinr = data['usdinr'] or 0
+    from_hi = data['from_hi']
+
+    default_appeal = "이평선 정배열" if "정배열" in ma else ("RSI 과매도 구간" if rsi <= 40 else "모멘텀 보합")
+    default_risk = "역배열 지속" if "역배열" in ma else ("고점 근접" if from_hi >= -5 else "변동성 주의")
+    default_entry = "이평선 정배열 전환 확인 후" if "역배열" in ma else "눌림목 분할 매수"
+    default_danger = "높음" if vix_i > 22 else ("보통" if vix_i > 15 else "낮음")
+
+    if not anthropic_key:
+        return default_appeal, default_risk, default_entry, default_danger
+
+    try:
+        import urllib.request, json
+        news_str = " / ".join(news_titles[:3]) if news_titles else "없음"
+        prompt = (
+            f"인도 NIFTY50 현황:\n"
+            f"- NIFTY: {data['current']:,} ({data['pct']:+.2f}%)\n"
+            f"- 이평선: {ma} | RSI: {rsi} | 4주 모멘텀: {mom:+.1f}%\n"
+            f"- India VIX: {vix_i} | USD/INR: {usdinr} | 고점대비: {from_hi:.1f}%\n"
+            f"- 주요 뉴스: {news_str}\n\n"
+            f"아래 JSON으로만 답해:\n"
+            f'{{ "appeal": "핵심 매력 10자 이내", "risk": "핵심 리스크 10자 이내", "entry": "진입 단서 15자 이내", "danger": "낮음/보통/높음 중 하나" }}'
+        )
+        body = json.dumps({
+            "model": "claude-haiku-4-5-20251001",
+            "max_tokens": 200,
+            "messages": [{"role": "user", "content": prompt}]
+        }).encode()
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=body,
+            headers={
+                "x-api-key": anthropic_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as r:
+            res = json.loads(r.read())
+        text = res["content"][0]["text"].strip()
+        # JSON 파싱
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        ag = json.loads(text[start:end])
+        return ag.get("appeal", default_appeal), ag.get("risk", default_risk), ag.get("entry", default_entry), ag.get("danger", default_danger)
+    except Exception as e:
+        print(f"  AI 필드 생성 실패: {e}")
+        return default_appeal, default_risk, default_entry, default_danger
+
 # ── 알림 조건 체크 ──
 def check_conditions(data):
     alerts = []
@@ -372,13 +429,34 @@ def main():
 
     # ① 시황 알림 (실행마다 1회)
     if not already_sent(state, "ai_comment"):
-        msg = (f"🇮🇳 인도 증시 {slot_kr} 시황 [{now_kst}]\n\n"
-               f"NIFTY 50: {data['current']:,} ({pct_str}%)\n"
-               f"이평선: {data['ma_signal']} | RSI: {data['rsi']}\n"
-               f"India VIX: {data['india_vix'] or 'N/A'} | USD/INR: {data['usdinr'] or 'N/A'}\n\n"
-               f"━━━━━━━━━━━━\n"
-               f"종합신호: {sc_emoji} {sc_label} ({pct_score}점)\n"
-               f"{sc_desc}")
+        # 핵심 매력/리스크/진입단서 생성
+        appeal, risk, entry, danger = gen_ai_fields(data, news_titles, anthropic_key)
+
+        vix_status = f"{data['india_vix']} {'안정' if (data['india_vix'] or 99) < 15 else '주의' if (data['india_vix'] or 99) < 22 else '공포'}" if data['india_vix'] else 'N/A'
+        arrow = "▲" if data['pct'] >= 0 else "▼"
+        pct_abs = abs(data['pct'])
+
+        news_line = ""
+        if news_titles:
+            news_line = f"\n📰 {news_titles[0]}"
+
+        msg = (
+            f"🇮🇳 인도 증시 {slot_kr} [{now_kst}]\n"
+            f"━━━━━━━━━━━━\n"
+            f"NIFTY 50  {data['current']:,} {arrow}{pct_abs:.2f}%\n"
+            f"\n"
+            f"{sc_emoji} {sc_label}  {pct_score}점 / 100점\n"
+            f"\n"
+            f"📈 핵심 매력  {appeal}\n"
+            f"⚠️ 핵심 리스크  {risk}\n"
+            f"🎯 진입 단서  {entry}\n"
+            f"🔰 위험도  {danger}\n"
+            f"\n"
+            f"── 주요 지표 ──\n"
+            f"이평선 {data['ma_signal']} | RSI {data['rsi']}\n"
+            f"India VIX {vix_status} | ₹{data['usdinr'] or 'N/A'}"
+            f"{news_line}"
+        )
         kakao_send(access_token, msg)
         mark_sent(state, "ai_comment")
         save_state(state)
