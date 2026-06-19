@@ -93,7 +93,7 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
   <div style="display:flex;justify-content:space-between;align-items:flex-start;">
     <div class="header" style="margin-bottom:0;">
       <h1>🇮🇳 인도 시장 대시보드</h1>
-      <p>NIFTY 50 · SENSEX 기반 매수 타이밍 분석</p>
+      <p id="sc-oneliner" style="font-size:13px;color:var(--text2);margin-top:3px;">--</p>
     </div>
     <button onclick="location.reload(true)" style="margin-top:4px;padding:7px 18px;border-radius:20px;border:0.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;flex-shrink:0;">🔄 새로고침</button>
   </div>
@@ -117,14 +117,35 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
     <div style="display:flex;gap:16px;font-size:11px;color:var(--text2);">
       <span>기술적 <strong id="sc-tech" style="color:var(--warn-text);">--</strong></span>
       <span>매크로 <strong id="sc-macro" style="color:var(--warn-text);">--</strong></span>
-      <span>뉴스 <strong id="sc-news" style="color:var(--warn-text);">--</strong></span>
     </div>
+    <span id="sc-news" style="display:none;"></span>
     <div id="sc-desc" style="margin-top:10px;font-size:12px;color:var(--text2);line-height:1.6;padding:10px 12px;background:rgba(0,0,0,0.04);border-radius:10px;">데이터 로딩 중...</div>
+    <div id="sc-extra" style="margin-top:12px;border-top:0.5px solid rgba(0,0,0,0.08);padding-top:12px;display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.06);">
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0;width:72px;">가격 위치</span>
+        <span id="sc-price-pos" style="font-size:12px;color:var(--text);text-align:right;">--</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.06);">
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0;width:72px;">핵심 매력</span>
+        <span id="sc-appeal" style="font-size:12px;color:var(--text);text-align:right;line-height:1.5;">--</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.06);">
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0;width:72px;">핵심 리스크</span>
+        <span id="sc-risk" style="font-size:12px;color:var(--text);text-align:right;line-height:1.5;">--</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.06);">
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0;width:72px;">진입 단서</span>
+        <span id="sc-entry" style="font-size:12px;color:var(--text);text-align:right;line-height:1.5;">--</span>
+      </div>
+      <div style="margin-top:10px;">
+        <span id="sc-danger" style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:#fde8e8;color:#c0392b;">위험도 --</span>
+      </div>
+    </div>
   </div>
 
   <div class="section-label">NIFTY 50 (국립증권거래소)</div>
   <div class="main-header">
-    <div class="idx-name">NIFTY 50</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;"><div class="idx-name">NIFTY 50</div><span id="market-status" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px;display:none;"></span></div>
     <div class="idx-price" id="live-nifty-price">--</div>
     <div class="idx-change" id="live-nifty-change">--</div>
     <div class="ohlc-row">
@@ -155,50 +176,47 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
     <div class="chart-wrap"><canvas id="chartNIFTY"></canvas></div>
     <div style="font-size:11px;color:var(--text3);margin-top:-4px;margin-bottom:4px;">* INDA ETF 기준 환산 추정치 (Yahoo Finance 실시간)</div>
   </div>
-  <div class="card" style="margin-top:-4px;">
-    <div class="card-title" style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:10px;">📊 AI 차트 분석 — NIFTY 50</div>
-    <div id="ai-chart-analysis" style="font-size:13px;line-height:2;color:var(--text);white-space:pre-line;">데이터 로딩 후 분석합니다...</div>
-  </div>
+  <div id="ai-chart-analysis" style="display:none;"></div>
 
   <hr class="divider">
 
   <div class="section-label">주요 이벤트 일정</div>
   <div class="card" style="margin-bottom:16px;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <tbody style="line-height:2.2;">
-        <tr><td style="color:var(--text2);width:60px;">06-18</td><td>RBI 통화정책위원회 결과</td><td style="text-align:right;color:var(--warn-text);font-weight:500;">D-2</td></tr>
-        <tr><td style="color:var(--text2);">07-01</td><td>인도 GDP Q1 발표</td><td style="text-align:right;color:var(--text3);">D-15</td></tr>
-        <tr><td style="color:var(--text2);">09-17</td><td>FOMC 금리결정</td><td style="text-align:right;color:var(--text3);">D-93</td></tr>
-      </tbody>
+      <tbody id="event-tbody" style="line-height:2.2;"></tbody>
     </table>
   </div>
+  <script>
+  (function() {
+    const EVENTS = [
+      { date: '2026-08-06', label: 'RBI 통화정책위원회' },
+      { date: '2026-07-01', label: '인도 GDP Q1 발표' },
+      { date: '2026-07-30', label: 'FOMC 금리결정' },
+      { date: '2026-09-17', label: 'FOMC 금리결정 (9월)' },
+      { date: '2026-10-01', label: '인도 CPI 발표' },
+    ];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const upcoming = EVENTS
+      .map(e => ({ ...e, diff: Math.round((new Date(e.date) - today) / 86400000) }))
+      .filter(e => e.diff >= 0)
+      .sort((a, b) => a.diff - b.diff)
+      .slice(0, 4);
+    const tbody = document.getElementById('event-tbody');
+    if (tbody) tbody.innerHTML = upcoming.map(e => {
+      const dColor = e.diff <= 7 ? 'var(--warn-text)' : 'var(--text3)';
+      const dWeight = e.diff <= 7 ? '500' : '400';
+      return `<tr><td style="color:var(--text2);width:60px;">${e.date.slice(5).replace('-','/')}</td><td>${e.label}</td><td style="text-align:right;color:${dColor};font-weight:${dWeight};">D-${e.diff}</td></tr>`;
+    }).join('');
+  })();
+  </script>
   <hr class="divider" style="margin-top:0;">
-
-  <div class="section-label">매수 계획</div>
-  <div class="card">
-    <div class="card-title" style="margin-bottom:10px;">💰 투자 계획</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead>
-        <tr style="color:var(--text2);font-size:11px;border-bottom:1px solid var(--border);">
-          <th style="text-align:left;padding:5px 0;font-weight:500;">단계</th>
-          <th style="text-align:right;padding:5px 0;font-weight:500;">금액</th>
-          <th style="text-align:right;padding:5px 0;font-weight:500;">비고</th>
-        </tr>
-      </thead>
-      <tbody style="line-height:2.2;">
-        <tr><td style="color:var(--text2);">1차 매수</td><td style="text-align:right;font-weight:600;">미정</td><td style="text-align:right;color:var(--text3);">—</td></tr>
-        <tr><td style="color:var(--text2);">2차 분할매수</td><td style="text-align:right;font-weight:600;">미정</td><td style="text-align:right;color:var(--text3);">—</td></tr>
-        <tr style="border-top:1px solid var(--border);font-weight:600;"><td>합계</td><td style="text-align:right;">미정</td><td></td></tr>
-      </tbody>
-    </table>
-  </div>
 
   <hr class="divider">
 
   <div class="section-label">매매 신호</div>
   <div class="card">
     <div class="card-title" style="margin-bottom:8px;">📡 기술적 지표 (자동)</div>
-    <div class="signal-row"><span class="signal-name">RSI (14일)</span><span class="badge badge-b" id="badge-rsi">로딩 중...</span></div>
+    <div class="signal-row"><span class="signal-name">RSI (14주)</span><span class="badge badge-b" id="badge-rsi">로딩 중...</span></div>
     <div class="signal-row"><span class="signal-name">이평선 배열</span><span class="badge badge-b" id="badge-ma">로딩 중...</span></div>
     <div class="signal-row"><span class="signal-name">단기 모멘텀</span><span class="badge badge-b" id="badge-mom">로딩 중...</span></div>
     <div class="signal-row"><span class="signal-name">변동성</span><span class="badge badge-b" id="badge-vol">로딩 중...</span></div>
@@ -227,8 +245,7 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
 
   <hr class="divider">
 
-  <div class="section-label">매수 타이밍 가이드</div>
-  <div class="card" id="buy-checklist" style="font-size:13px;">데이터 로딩 중...</div>
+  <div style="display:none" id="buy-checklist"></div>
   <div style="display:none" id="ag-now"><div id="ag-now-title"></div><div id="ag-now-desc"></div></div>
   <div style="display:none" id="ag-buy1"><div id="ag-buy1-title"></div><div id="ag-buy1-desc"></div></div>
   <div style="display:none" id="ag-buy2"><div id="ag-buy2-title"></div><div id="ag-buy2-desc"></div></div>
@@ -330,13 +347,24 @@ function renderChart(labels, prices) {
 }
 
 async function fetchYahoo(ticker, interval, range) {
-  try {
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
-    const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-    if (!r.ok) return null;
-    const j = await r.json();
-    return j.chart.result[0];
-  } catch(e) { return null; }
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  for (const proxyUrl of proxies) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 9000);
+      const r = await fetch(proxyUrl, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j?.chart?.result?.[0]) return j.chart.result[0];
+    } catch(e) { /* 다음 프록시 시도 */ }
+  }
+  return null;
 }
 
 async function loadChart(period) {
@@ -441,8 +469,8 @@ async function fetchAllLive() {
     setBadge('badge-fii',`INDA ${arrow(inda.pct)}${Math.abs(inda.pct).toFixed(2)}% — ${lf}`,cf);
   }
   if (usdinr) {
-    const c=usdinr.price>86?'badge-r':usdinr.price>84?'badge-y':'badge-g';
-    const l=usdinr.price>86?'루피 약세':usdinr.price>84?'루피 보통':'루피 강세';
+    const c=usdinr.price>93?'badge-r':usdinr.price>88?'badge-y':'badge-g';
+    const l=usdinr.price>93?'루피 약세':usdinr.price>88?'루피 보통':'루피 강세';
     setBadge('badge-usdinr',`₹${fmt(usdinr.price)} — ${l}`,c);
   }
   if (inrkrw) {
@@ -523,6 +551,24 @@ async function fetchAllLive() {
 
   document.getElementById('last-updated').textContent =
     new Date().toLocaleDateString('ko-KR')+' '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  // 인도 장 시간 표시 (IST = UTC+5:30, 09:15~15:30)
+  (function() {
+    const now = new Date();
+    const utcH = now.getUTCHours(), utcM = now.getUTCMinutes();
+    const istMin = utcH * 60 + utcM + 330; // UTC → IST (분 단위)
+    const istDay = (istMin / 60 / 24 | 0) % 7; // 요일 (0=일)
+    const istTod = istMin % (24*60);
+    const openMin = 9*60+15, closeMin = 15*60+30;
+    const isWeekday = now.getUTCDay() !== 0 && now.getUTCDay() !== 6;
+    const isOpen = isWeekday && istTod >= openMin && istTod < closeMin;
+    const el = document.getElementById('market-status');
+    if (el) {
+      el.style.display = 'inline';
+      el.textContent = isOpen ? '🟢 장 중' : '🔴 장 마감';
+      el.style.background = isOpen ? '#e8fde8' : '#f5f5f7';
+      el.style.color = isOpen ? '#2d6a0a' : '#6e6e73';
+    }
+  })();
 
   _liveData = {nifty,sensex,inda,usdinr,inrkrw,dxy,eem,vix,indiavix,crude,china};
   return _liveData;
@@ -531,9 +577,10 @@ async function fetchAllLive() {
 async function fetchNews() {
   // Yahoo INDA(인도 ETF/매크로 중심) + ET Economy + ET Markets
   const FEEDS = [
-    'https://feeds.finance.yahoo.com/rss/2.0/headline?s=INDA&region=US&lang=en-US',
-    'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms',
     'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms',
+    'https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms',
+    'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms',
+    'https://news.google.com/rss/search?q=인도+증시+NIFTY&hl=ko&gl=KR&ceid=KR:ko',
   ];
 
   let allTitles = [];
@@ -591,7 +638,7 @@ function buildChecklist() {
     { label:'이평선 배열', val: txt('badge-ma'), ok: isG(maCls), warn: !isR(maCls) },
     { label:'4주 모멘텀', val: txt('badge-mom'), ok: isG(momCls), warn: !isR(momCls) },
     { label:'India VIX (공포지수)', val: vix ? vix.toFixed(1) : '--', ok: vix>0&&vix<15, warn: vix>0&&vix<20 },
-    { label:'USD/INR (루피 환율)', val: usdInr ? '₹'+usdInr.toFixed(2) : '--', ok: usdInr>0&&usdInr<84, warn: usdInr>0&&usdInr<87 },
+    { label:'USD/INR (루피 환율)', val: usdInr ? '₹'+usdInr.toFixed(2) : '--', ok: usdInr>0&&usdInr<88, warn: usdInr>0&&usdInr<93 },
     { label:'외국인 자금 (INDA)', val: indaPct!=null?(indaPct>=0?'▲':'▼')+Math.abs(indaPct).toFixed(2)+'%':'--', ok: indaPct!=null&&indaPct>=0.5, warn: indaPct!=null&&indaPct>-0.5 },
     { label:'신흥국 흐름 (EEM)', val: eemPct!=null?(eemPct>=0?'▲':'▼')+Math.abs(eemPct).toFixed(2)+'%':'--', ok: eemPct!=null&&eemPct>=0.5, warn: eemPct!=null&&eemPct>-0.5 },
   ];
@@ -667,7 +714,7 @@ function setNewsBadgesDirect(titles) {
     if      (isG && !isR) { text = gT; cls = 'badge-g'; }
     else if (isR && !isG) { text = rT; cls = 'badge-r'; }
     else if (isG && isR)  { text = nT; cls = 'badge-y'; }
-    else { const h = findKw(relKw); if (h) { text = h; cls = 'badge-b'; } else { text = dT; cls = 'badge-y'; } }
+    else { text = dT; cls = 'badge-y'; }
     el.textContent = text; el.className = 'badge ' + cls;
   });
 }
@@ -680,12 +727,11 @@ function recalcScorecard() {
   }
   const techIds  = ['badge-rsi','badge-ma','badge-mom','badge-vol','badge-pos'];
   const macroIds = ['badge-inda','badge-usdinr','badge-dxy','badge-eem','badge-indiavix','badge-vix','badge-crude','badge-china'];
-  const newsIds  = ['badge-fii','badge-rbi','badge-cpi','badge-gdp','badge-fed','badge-trade','badge-geo'];
   const tS = techIds.reduce((s,id)=>s+bv(id)*1.5,0);
   const mS = macroIds.reduce((s,id)=>s+bv(id)*1.0,0);
-  const nS = newsIds.reduce((s,id)=>s+bv(id)*0.8,0);
-  const total = tS+mS+nS;
-  const max = techIds.length*1.5+macroIds.length*1.0+newsIds.length*0.8;
+  const nS = 0;
+  const total = tS+mS;
+  const max = techIds.length*1.5+macroIds.length*1.0;
   const pct = Math.max(0,Math.min(100,Math.round((total+max)/(2*max)*100)));
   let label,color,emoji;
   if (total>=max*0.5)       {label='강매수';   color='#2d6a0a';emoji='🔥';}
@@ -774,8 +820,38 @@ function ruleBasedAnalysis(liveData) {
     ? `매수 평균가 대비 ${newsAdverse ? '-8%' : '-10%'} 이탈(${fmt(sell_price)} 이하) 시 기계적 손절. 조기 손절 신호: India VIX 25 이상 급등 / 외국인 대량 순매도 / RBI 예상 밖 금리 인상.`
     : '매수 평균가 대비 -10% 이탈 시 기계적 손절 실행.';
 
-  // 종합 분석 — 실제 뉴스 헤드라인 반영
-  const sc_desc = `이평선 ${maState || '혼조'}, 4주 모멘텀 ${momState || '계산 중'}, India VIX ${vix ? vix.toFixed(1)+'('+vixState+')' : 'N/A'}, USD/INR ₹${usdinr ? usdinr.toFixed(2) : 'N/A'}.${hasNews ? ' [최신 뉴스] ' + newsContext + '.' : ''} ${scLabel} 판단 — ${maBadge==='badge-g' ? '분할 매수 단계적 검토 가능.' : maBadge==='badge-r' ? '추세 회복 확인 후 진입 권장.' : '관망하며 추가 신호 대기.'}`;
+  // 종합 분석 — 배지 + 뉴스 한눈에 보기
+  function mkChip2(label, val, color) {
+    const bg = {green:'#e8fde8',red:'#fde8e8',yellow:'#fdf6e8',blue:'#e8f0fe'}[color]||'#e8f0fe';
+    const fg = {green:'#2d6a0a',red:'#c0392b',yellow:'#BA7517',blue:'#1565c0'}[color]||'#1565c0';
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;padding:6px 4px;border-radius:10px;background:${bg};"><span style="font-size:9px;color:${fg};opacity:0.8;margin-bottom:2px;white-space:nowrap;">${label}</span><span style="font-size:12px;font-weight:700;color:${fg};text-align:center;line-height:1.2;">${val}</span></div>`;
+  }
+  const maColor  = maBadge==='badge-g'?'green':maBadge==='badge-r'?'red':'yellow';
+  const maShort  = maState.includes('정배열')?'정배열 ↑':maState.includes('역배열')?'역배열 ↓':'혼조';
+  const momColor = momState.includes('▲')?'green':momState.includes('▼')?'red':'yellow';
+  const momShort = momState ? momState.replace(/모멘텀\s*/,'').replace(/\(.*?\)/g,'').trim() || '보합' : '보합';
+  const vixColor = vix>20?'red':vix>15?'yellow':'green';
+  const vixShort = vix?vix.toFixed(1)+' '+vixState:'N/A';
+  const inrColor = usdinr>93?'red':usdinr>88?'yellow':'green';
+  const inrShort = usdinr?'₹'+usdinr.toFixed(1):'N/A';
+  // RSI 칩
+  const rsiText  = document.getElementById('badge-rsi')?.textContent || '';
+  const rsiMatch = rsiText.match(/RSI\s*([\d.]+)/);
+  const rsiVal   = rsiMatch ? parseFloat(rsiMatch[1]) : null;
+  const rsiColor = rsiVal == null ? 'blue' : rsiVal >= 70 ? 'red' : rsiVal <= 35 ? 'green' : 'yellow';
+  const rsiShort = rsiVal != null ? `RSI ${rsiVal}` : '로딩 중';
+
+  // INDA % 칩
+  const indaPctC  = _liveData?.inda?.pct ?? null;
+  const indaColor = indaPctC == null ? 'blue' : indaPctC >= 0.5 ? 'green' : indaPctC <= -0.5 ? 'red' : 'yellow';
+  const indaShort = indaPctC != null ? `${indaPctC >= 0 ? '▲' : '▼'}${Math.abs(indaPctC).toFixed(2)}%` : '--';
+
+  // EEM 칩
+  const eemPctC  = _liveData?.eem?.pct ?? null;
+  const eemColor = eemPctC == null ? 'blue' : eemPctC >= 0.5 ? 'green' : eemPctC <= -0.5 ? 'red' : 'yellow';
+  const eemShort = eemPctC != null ? `${eemPctC >= 0 ? '▲' : '▼'}${Math.abs(eemPctC).toFixed(2)}%` : '--';
+
+  const sc_desc = `<div style="display:flex;gap:3px;flex-wrap:wrap;">${mkChip2('이평선',maShort,maColor)}${mkChip2('모멘텀',momShort,momColor)}${mkChip2('RSI',rsiShort,rsiColor)}${mkChip2('VIX',vixShort,vixColor)}${mkChip2('INDA',indaShort,indaColor)}${mkChip2('EEM',eemShort,eemColor)}${mkChip2('INR',inrShort,inrColor)}</div>`;
 
   // 차트 분석 — 실제 뉴스 헤드라인 반영
   const trendConclusion = maBadge==='badge-g'
@@ -792,7 +868,74 @@ function ruleBasedAnalysis(liveData) {
     `• 한 줄 결론: ${trendConclusion}`
   ].filter(Boolean).join('\n\n');
 
-  return { now_title, now_desc, buy1_title: '🟢 1차 매수 조건', buy1_desc, buy2_title: '🟢 2차 매수 조건', buy2_desc, sell_title: '🔴 손절 조건', sell_desc, sc_desc, chart_analysis };
+  // ── 가격 위치 ──
+  const sc_price_pos = posState || (price && n?.high52 && n?.low52
+    ? `고점대비 ${((price-n.high52)/n.high52*100).toFixed(1)}% / 저점대비 +${((price-n.low52)/n.low52*100).toFixed(1)}%`
+    : '데이터 로딩 중');
+
+  // ── 핵심 매력 ──
+  const indaPct2 = _liveData?.inda?.pct ?? null;
+  const eemPct2  = _liveData?.eem?.pct  ?? null;
+  const chinaUp  = (_liveData?.china?.pct ?? 0) >= 1;
+  let sc_appeal;
+  if (indaPct2 != null && indaPct2 >= 0.5 && eemPct2 != null && eemPct2 >= 0.5)
+    sc_appeal = '신흥국 자금 유입 + 외국인 순매수 기대';
+  else if (chinaUp)
+    sc_appeal = '중국 약세 → 신흥국 자금 인도 유입 가능';
+  else if (maBadge === 'badge-g')
+    sc_appeal = '추세 상승 + 변동성 안정, 기술적 우호';
+  else
+    sc_appeal = '장기 경제성장 스토리 유효, 저점 매집 기회';
+
+  // ── 핵심 리스크 ──
+  const vix2    = _liveData?.indiavix?.price ?? 0;
+  const usdinr2 = _liveData?.usdinr?.price  ?? 0;
+  const risks = [];
+  if (maBadge === 'badge-r') risks.push('하락 추세 지속');
+  if (vix2 > 20)             risks.push('변동성 급등');
+  if (usdinr2 > 93)          risks.push('루피 약세(환율 손실)');
+  if (eemPct2 != null && eemPct2 < -0.5) risks.push('신흥국 자금 이탈');
+  const sc_risk = risks.length ? risks.join(', ') : '단기 조정 가능성, 추세 확인 필요';
+
+  // ── 진입 단서 ──
+  let sc_entry;
+  if (maBadge === 'badge-g' && (indaPct2 ?? 0) >= 0.5)
+    sc_entry = '분할 매수 단계적 진입 가능';
+  else if (maBadge === 'badge-r')
+    sc_entry = '반등 확인 후 진입, 추세 전환 대기';
+  else
+    sc_entry = '조정 시 분할 매집, 추세 확인 필수';
+
+  // ── 위험도 ──
+  let sc_danger, sc_danger_color, sc_danger_bg;
+  if (vix2 > 20 || (maBadge === 'badge-r' && vix2 > 15)) {
+    sc_danger = '위험도 높음'; sc_danger_color = '#c0392b'; sc_danger_bg = '#fde8e8';
+  } else if (vix2 < 15 && maBadge !== 'badge-r') {
+    sc_danger = '위험도 낮음'; sc_danger_color = '#2d6a0a'; sc_danger_bg = '#e8fde8';
+  } else {
+    sc_danger = '위험도 보통'; sc_danger_color = '#BA7517'; sc_danger_bg = '#fdf6e8';
+  }
+
+  // ── 한줄 평 ──
+  const indaPct3 = _liveData?.inda?.pct ?? null;
+  const vix3     = _liveData?.indiavix?.price ?? 0;
+  let sc_oneliner;
+  if (maBadge === 'badge-g' && indaPct3 != null && indaPct3 >= 0.5)
+    sc_oneliner = '상승 추세 + 외국인 순매수, 기술적으로 우호적';
+  else if (maBadge === 'badge-g')
+    sc_oneliner = '상승 추세 유지 중, 눌림목 매수 기회 탐색';
+  else if (maBadge === 'badge-r' && vix3 > 20)
+    sc_oneliner = '하락 추세 + 변동성 급등, 신규 진입 자제';
+  else if (maBadge === 'badge-r' && indaPct3 != null && indaPct3 >= 0.5)
+    sc_oneliner = '하락 추세 지속, 외국인 유입은 긍정적';
+  else if (maBadge === 'badge-r')
+    sc_oneliner = '하락 추세 지속 중, 반등 신호 확인 후 대응';
+  else if (indaPct3 != null && indaPct3 >= 0.5)
+    sc_oneliner = '외국인 순매수 긍정적, 추세 전환 신호 주시';
+  else
+    sc_oneliner = '기술적 혼조, 방향성 확인 전 관망';
+
+  return { now_title, now_desc, buy1_title: '🟢 1차 매수 조건', buy1_desc, buy2_title: '🟢 2차 매수 조건', buy2_desc, sell_title: '🔴 손절 조건', sell_desc, sc_desc, chart_analysis, sc_price_pos, sc_appeal, sc_risk, sc_entry, sc_danger, sc_danger_color, sc_danger_bg, sc_oneliner };
 }
 
 function applyAnalysis(ag) {
@@ -800,47 +943,123 @@ function applyAnalysis(ag) {
   if (ag.buy1_title)     { document.getElementById('ag-buy1-title').textContent=ag.buy1_title; document.getElementById('ag-buy1-desc').textContent=ag.buy1_desc; }
   if (ag.buy2_title)     { document.getElementById('ag-buy2-title').textContent=ag.buy2_title; document.getElementById('ag-buy2-desc').textContent=ag.buy2_desc; }
   if (ag.sell_title)     { document.getElementById('ag-sell-title').textContent=ag.sell_title; document.getElementById('ag-sell-desc').textContent=ag.sell_desc; }
-  if (ag.sc_desc)        { document.getElementById('sc-desc').textContent=ag.sc_desc; }
+  if (ag.sc_oneliner)    { document.getElementById('sc-oneliner').textContent=ag.sc_oneliner; }
+  if (ag.sc_desc)        { document.getElementById('sc-desc').innerHTML=ag.sc_desc; }
   if (ag.chart_analysis) { document.getElementById('ai-chart-analysis').textContent=ag.chart_analysis; }
+  if (ag.sc_price_pos || ag.sc_appeal || ag.sc_risk || ag.sc_entry) {
+    const extra = document.getElementById('sc-extra');
+    if (extra) {
+      extra.style.display = 'block';
+      if (ag.sc_price_pos) document.getElementById('sc-price-pos').textContent = ag.sc_price_pos;
+      if (ag.sc_appeal)    document.getElementById('sc-appeal').textContent    = ag.sc_appeal;
+      if (ag.sc_risk)      document.getElementById('sc-risk').textContent      = ag.sc_risk;
+      if (ag.sc_entry)     document.getElementById('sc-entry').textContent     = ag.sc_entry;
+      if (ag.sc_danger) {
+        const badge = document.getElementById('sc-danger');
+        badge.textContent = ag.sc_danger;
+        badge.style.color = ag.sc_danger_color;
+        badge.style.background = ag.sc_danger_bg;
+      }
+    }
+  }
 }
 
 async function updateAI(liveData) {
-  // 키 없으면 즉시 rule-based 분석 표시
+  // 항상 rule-based 칩/데이터 먼저 적용 (실시간 숫자 데이터는 rule-based가 정확)
+  const ruleResult = ruleBasedAnalysis(liveData);
+  applyAnalysis(ruleResult);
+
   const key = getKey();
-  if (!key) { applyAnalysis(ruleBasedAnalysis(liveData)); return; }
+  if (!key) return; // 키 없으면 rule-based로 끝
+
+  // AI 분석 중 표시
+  const onelinerEl = document.getElementById('sc-oneliner');
+  if (onelinerEl) onelinerEl.textContent = '🤖 AI 분석 중...';
 
   const n = liveData?.nifty;
-  const sc = document.getElementById('sc-emoji')?.textContent?.trim()||'';
-  const newsLines = (window.__newsForAnalysis || []).slice(0, 6).map(t => '- ' + t).join('\n');
-  const ctx = `당신은 10년차 인도 주식시장 전문 애널리스트입니다.
-현재: NIFTY 50 매수 타이밍 관찰 중 (분할매수 예정, 손절 -10% 기준)
+  const _aiNews = (window.__majorNewsItems || []).map(n => n.ko || n.title).filter(Boolean);
+  const newsLines = _aiNews.slice(0, 8).map(t => '- ' + t).join('\n');
+  const maText  = document.getElementById('badge-ma')?.textContent  || '';
+  const momText = document.getElementById('badge-mom')?.textContent || '';
+  const rsiText = document.getElementById('badge-rsi')?.textContent || '';
 
-[실시간 데이터]
-NIFTY 50: ${n?fmt(n.price)+` (${n.pct>=0?'▲':'▼'}${Math.abs(n.pct).toFixed(2)}%)`:'N/A'}
-USD/INR: ${liveData?.usdinr?'₹'+fmt(liveData.usdinr.price):'N/A'}
-India VIX: ${liveData?.indiavix?fmt(liveData.indiavix.price,1):'N/A'}
-US VIX: ${liveData?.vix?fmt(liveData.vix.price,1):'N/A'}
-브렌트유: ${liveData?.crude?'$'+fmt(liveData.crude.price,1):'N/A'}
-중국(FXI): ${liveData?.china?'$'+fmt(liveData.china.price)+(liveData.china.pct>=0?'+':'')+liveData.china.pct.toFixed(2)+'%':'N/A'}
-종합신호: ${sc}
-${newsLines ? '\n[최신 뉴스 헤드라인]\n' + newsLines : ''}`;
+  const ctx = `당신은 인도 주식시장 전문 애널리스트입니다. 오늘 날짜 기준으로 판단하세요. 뉴스에서 과거 위기나 가정형 표현("if", "could" 등)이 나오면 현재 진행 중인 이슈인지 신중하게 판단하세요.
+
+[실시간 지표]
+NIFTY 50: ${n ? fmt(n.price) + ` (${n.pct >= 0 ? '▲' : '▼'}${Math.abs(n.pct).toFixed(2)}%)` : 'N/A'}
+이평선: ${maText} | 모멘텀: ${momText} | RSI: ${rsiText}
+USD/INR: ${liveData?.usdinr ? '₹' + liveData.usdinr.price.toFixed(2) : 'N/A'}
+India VIX: ${liveData?.indiavix ? liveData.indiavix.price.toFixed(1) : 'N/A'}
+US VIX: ${liveData?.vix ? liveData.vix.price.toFixed(1) : 'N/A'}
+INDA: ${liveData?.inda ? `$${liveData.inda.price.toFixed(2)} (${liveData.inda.pct >= 0 ? '+' : ''}${liveData.inda.pct.toFixed(2)}%)` : 'N/A'}
+EEM: ${liveData?.eem ? `$${liveData.eem.price.toFixed(2)} (${liveData.eem.pct >= 0 ? '+' : ''}${liveData.eem.pct.toFixed(2)}%)` : 'N/A'}
+브렌트유: ${liveData?.crude ? '$' + liveData.crude.price.toFixed(1) : 'N/A'}
+중국(FXI): ${liveData?.china ? `$${liveData.china.price.toFixed(2)} (${liveData.china.pct >= 0 ? '+' : ''}${liveData.china.pct.toFixed(2)}%)` : 'N/A'}
+
+[최신 뉴스]
+${newsLines || '뉴스 없음'}`;
+
+  const jsonPrompt = `위 데이터와 뉴스를 분석해 아래 JSON으로만 답하세요 (다른 텍스트 없이):
+{
+  "sc_oneliner": "한줄 시장 요약 (20자 이내, 뉴스 반영)",
+  "sc_appeal": "핵심 매력 (뉴스+지표 반영, 30자 이내)",
+  "sc_risk": "핵심 리스크 (뉴스+지표 반영, 30자 이내)",
+  "sc_entry": "진입 단서 (30자 이내)",
+  "sc_danger": "위험도 낮음 또는 위험도 보통 또는 위험도 높음",
+  "badge_rbi": {"text": "RBI 정책 요약 (10자 이내)", "cls": "badge-g 또는 badge-y 또는 badge-r"},
+  "badge_cpi": {"text": "물가 요약 (10자 이내)", "cls": "badge-g 또는 badge-y 또는 badge-r"},
+  "badge_gdp": {"text": "GDP 요약 (10자 이내)", "cls": "badge-g 또는 badge-y 또는 badge-r"},
+  "badge_fed": {"text": "연준 정책 요약 (10자 이내)", "cls": "badge-g 또는 badge-y 또는 badge-r"},
+  "badge_trade": {"text": "무역 요약 (10자 이내)", "cls": "badge-g 또는 badge-y 또는 badge-r"},
+  "badge_geo": {"text": "지정학 요약 (10자 이내)", "cls": "badge-g 또는 badge-y 또는 badge-r"}
+}`;
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:900,system:ctx,messages:[{role:'user',content:`아래 JSON 형식으로만 답하세요 (다른 텍스트 없이):
-{"now_title":"📌 지금 — [현황]","now_desc":"[2문장]","buy1_title":"🟢 1차 매수 조건","buy1_desc":"[2문장]","buy2_title":"🟢 2차 매수 조건","buy2_desc":"[2문장]","sell_title":"🔴 손절 조건","sell_desc":"[1~2문장]","sc_desc":"[종합 분석 2~3문장]","chart_analysis":"• 현재 지수: [가격] ([변화율]) — [한줄요약]\\n\\n• 추세 (이평): [분석]\\n\\n• 모멘텀: [분석]\\n\\n• 한 줄 결론: [결론]"}`}]})
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 700,
+        system: ctx,
+        messages: [{ role: 'user', content: jsonPrompt }]
+      })
     });
     const d = await r.json();
-    // 크레딧 오류 등 API 에러 시 rule-based로 폴백
-    if (d.error) { console.warn('AI API 오류, 자동분석으로 대체:', d.error.message); applyAnalysis(ruleBasedAnalysis(liveData)); return; }
-    const text = d.content?.[0]?.text||'';
+    if (d.error) { console.warn('AI API 오류:', d.error.message); return; }
+    const text = d.content?.[0]?.text || '';
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) { applyAnalysis(ruleBasedAnalysis(liveData)); return; }
+    if (!match) return;
     const ag = JSON.parse(match[0]);
-    applyAnalysis(ag);
-  } catch(e) { console.warn('AI error:', e); applyAnalysis(ruleBasedAnalysis(liveData)); }
+
+    // 텍스트 필드 적용
+    if (ag.sc_oneliner && onelinerEl) onelinerEl.textContent = ag.sc_oneliner;
+    const extra = document.getElementById('sc-extra');
+    if (extra) {
+      if (ag.sc_appeal) document.getElementById('sc-appeal').textContent = ag.sc_appeal;
+      if (ag.sc_risk)   document.getElementById('sc-risk').textContent   = ag.sc_risk;
+      if (ag.sc_entry)  document.getElementById('sc-entry').textContent  = ag.sc_entry;
+      if (ag.sc_danger) {
+        const badge = document.getElementById('sc-danger');
+        const isHigh = ag.sc_danger.includes('높음');
+        const isLow  = ag.sc_danger.includes('낮음');
+        badge.textContent       = ag.sc_danger;
+        badge.style.color       = isHigh ? '#c0392b' : isLow ? '#2d6a0a' : '#BA7517';
+        badge.style.background  = isHigh ? '#fde8e8' : isLow ? '#e8fde8' : '#fdf6e8';
+      }
+    }
+    // 매크로 뉴스 배지 AI 판단 적용
+    ['badge_rbi','badge_cpi','badge_gdp','badge_fed','badge_trade','badge_geo'].forEach(k => {
+      const domId = k.replace('_', '-');
+      if (ag[k]?.text && ag[k]?.cls) setBadge(domId, ag[k].text, ag[k].cls);
+    });
+    recalcScorecard();
+  } catch(e) { console.warn('AI error:', e); }
 }
 
 // API key helpers

@@ -388,7 +388,9 @@
     box.innerHTML = items.map((n) => {
       const ko = (n.ko || n.title).replace(/&/g, '&amp;').replace(/</g, '&lt;');
       const meta = [n.source, relTime(n.ts)].filter(Boolean).join(' · ');
-      return `<a href="${n.link}" target="_blank" rel="noopener" style="display:block;padding:9px 0;border-bottom:0.5px solid var(--border);text-decoration:none;color:var(--text);"><div style="font-size:13px;line-height:1.45;">${ko}</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">${meta} ↗</div></a>`;
+      const ageDay = n.ts ? (Date.now()/1000 - n.ts) / 86400 : 0;
+      const dimStyle = ageDay > 7 ? 'opacity:0.4;' : '';
+      return `<a href="${n.link}" target="_blank" rel="noopener" style="display:block;padding:9px 0;border-bottom:0.5px solid var(--border);text-decoration:none;color:var(--text);${dimStyle}"><div style="font-size:13px;line-height:1.45;">${ko}</div><div style="font-size:11px;color:var(--text3);margin-top:3px;">${meta} ↗</div></a>`;
     }).join('');
   }
 
@@ -429,7 +431,7 @@
       if      (isG && !isR) { cls = 'badge-g'; text = gT; }
       else if (isR && !isG) { cls = 'badge-r'; text = rT; }
       else if (isG && isR)  { cls = 'badge-y'; text = nT; }
-      else { const _h = findRelatedHeadline(relKw[id] || []); if (_h) { cls = 'badge-b'; text = _h; } else if (dT) { cls = 'badge-y'; text = dT; } else { return; } }
+      else { if (dT) { cls = 'badge-y'; text = dT; } else { return; } }
       const el = document.getElementById(id);
       if (el) { el.textContent = text; el.className = 'badge ' + cls; }
     }
@@ -547,10 +549,10 @@
       // 매크로 배지 — India VIX, USD/INR, 유가
       const vix_i = d.india_vix || 0;
       if (vix_i) setB('badge-indiavix', vix_i < 15 ? 'badge-g' : vix_i > 22 ? 'badge-r' : 'badge-y',
-           `India VIX ${vix_i}`);
+           `India VIX ${vix_i} — ${vix_i < 15 ? '안정' : vix_i > 22 ? '공포' : '주의'}`);
 
       const usdinr = d.usdinr || 0;
-      if (usdinr) setB('badge-usdinr', usdinr < 83 ? 'badge-g' : usdinr > 87 ? 'badge-r' : 'badge-y',
+      if (usdinr) setB('badge-usdinr', usdinr < 88 ? 'badge-g' : usdinr > 93 ? 'badge-r' : 'badge-y',
            `₹${usdinr}`);
 
       const crude = d.crude || 0;
@@ -603,12 +605,15 @@
       }
     } catch (e) {}
 
-    // 종합 신호 재계산 (뉴스 배지 제거됐으므로 가격 배지만으로 계산)
+    // 종합 신호 재계산 + 매수 타이밍 가이드 동기화
     try { if (typeof recalcScorecard === 'function') recalcScorecard(); } catch (e) {}
+    try { if (typeof buildChecklist === 'function') buildChecklist(); } catch (e) {}
 
-    // 뉴스 포함 최종 분석 — 1초 대기 후 덮어쓰기 (fetchAllLive/fetchNews 콜백보다 나중에 실행 보장)
+    // 최종 분석 — 1초 대기 후 덮어쓰기 (모든 배지 업데이트 완료 후)
     try {
       await new Promise(r => setTimeout(r, 1000));
+      if (typeof recalcScorecard === 'function') recalcScorecard();
+      if (typeof buildChecklist === 'function') buildChecklist();
       if (typeof applyAnalysis === 'function' && typeof ruleBasedAnalysis === 'function' && typeof _liveData !== 'undefined') {
         if (!getAnthropicKey()) applyAnalysis(ruleBasedAnalysis(_liveData));
       }
