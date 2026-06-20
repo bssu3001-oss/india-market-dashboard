@@ -478,6 +478,42 @@
     }
   }
 
+  // ── 매크로 배지 AI 분류 (Claude API) ──
+  async function updateMacroBadgesAI() {
+    const key = getAnthropicKey();
+    if (!key) return;
+    const items = window.__majorNewsItems || [];
+    const newsBlock = items.slice(0, 8).map(n => '- ' + (n.ko || n.title)).join('\n');
+    if (!newsBlock) return;
+
+    const sys = '당신은 인도 증시 뉴스 분석가입니다. 주어진 헤드라인을 보고 각 항목을 평가하세요. 반드시 JSON만 출력합니다.';
+    const prompt = `아래는 오늘 인도 증시 관련 실제 헤드라인입니다.\n${newsBlock}\n\n이 뉴스들을 근거로 각 항목에 대해 한국어 10자 이내 label 과 sentiment(good/bad/neutral)를 매기세요.\n항목: rbi=RBI금리정책, cpi=인도물가, gdp=인도경제성장, fed=미국연준금리, trade=미-인도무역, geo=지정학리스크\n\n규칙:\n- 뉴스에 직접 언급된 항목: 내용 반영한 구체적 label (예: "RBI 6.25% 동결", "물가 안정세", "방산 수출 호조")\n- 언급 안 된 항목도 반드시 현재 시장 맥락에 맞는 label을 써주세요 (예: "RBI 정책 관망", "CPI 발표 대기", "연준 동결 유지", "지정학 안정세")\n- "관련뉴스없음" 같은 표현은 절대 사용 금지\n다음 형식의 JSON만 출력:\n{"rbi":{"label":"...","sentiment":"good|bad|neutral"},"cpi":{...},"gdp":{...},"fed":{...},"trade":{...},"geo":{...}}`;
+
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400, system: sys, messages: [{ role: 'user', content: prompt }] }),
+      });
+      const d = await r.json();
+      const text = d.content?.[0]?.text || '';
+      const m = text.match(/\{[\s\S]*\}/);
+      if (!m) return;
+      const obj = JSON.parse(m[0]);
+      const sentCls = { good: 'badge-g', bad: 'badge-r', neutral: 'badge-y' };
+      const idMap = { rbi: 'badge-rbi', cpi: 'badge-cpi', gdp: 'badge-gdp', fed: 'badge-fed', trade: 'badge-trade', geo: 'badge-geo' };
+      for (const [k, v] of Object.entries(obj)) {
+        if (!v || !v.label) continue;
+        const label = v.label.trim();
+        if (!label || label.includes('없음')) continue;
+        const el = document.getElementById(idMap[k]);
+        if (el) { el.textContent = label; el.className = 'badge ' + (sentCls[v.sentiment] || 'badge-y'); }
+      }
+      const note = document.getElementById('news-live-note');
+      if (note) note.textContent = '✓ AI 뉴스 신호 방금 갱신됨';
+    } catch (e) { /* 실패 시 키워드 분류 유지 */ }
+  }
+
   // ── 매크로 신호 섹션에 뉴스 이슈 리스트 렌더링 ──
   function renderMacroNews() {
     const box = document.getElementById('macro-news-list');
@@ -584,6 +620,8 @@
 
     // 한국어 뉴스로 뉴스 배지 자동 분류 (API 키 불필요)
     try { updateNewsBadgesFromKorean(); } catch (e) {}
+    // AI 키 있으면 매크로 배지를 AI로 더 구체적으로 갱신
+    try { await updateMacroBadgesAI(); } catch (e) {}
 
     // 기술지표 + AI 차트분석 — 주봉 직접 fetch (window._charts 의존 제거)
     try {
