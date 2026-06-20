@@ -440,9 +440,8 @@ async function fetchAllLive() {
     const mk=(p,pc)=>(p!=null&&p!==0)?{price:p,pct:pc||0,prev:p,open:p,high:p,low:p,high52:p,low52:p,_stale:true}:null;
     const gj = await fetch('https://raw.githubusercontent.com/bssu3001-oss/us-market-dashboard/main/'+encodeURIComponent('시장데이터.json')).then(r=>r.ok?r.json():null).catch(()=>null);
     if (gj) {
+      // EEM만 단일소스 정규화. VIX·DXY는 라이브 유지
       if (gj.eem!=null) eem = mk(gj.eem, gj.eem_pct);
-      if (gj.vix!=null) vix = mk(gj.vix, 0);
-      if (gj.dxy!=null) dxy = mk(gj.dxy, 0);
     }
     const jr = await fetch('시장데이터.json?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
     if (jr) {
