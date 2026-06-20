@@ -568,6 +568,8 @@
       function setB(id, cls, txt) {
         const el = document.getElementById(id);
         if (!el) return;
+        // 캐시는 아직 로딩 중인 배지만 채움 → 라이브/정규화 값을 덮어쓰지 않음
+        if (!(el.classList.contains('badge-b') || /로딩/.test(el.textContent))) return;
         el.className = 'badge ' + cls;
         el.textContent = txt;
       }

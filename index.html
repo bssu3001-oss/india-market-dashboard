@@ -434,22 +434,27 @@ async function fetchAllLive() {
   const results = await Promise.all(tickers.map(t=>fetchQuote(t).catch(()=>null)));
   let [nifty,sensex,inda,usdinr,inrkrw,dxy,eem,vix,indiavix,crude,china] = results;
 
-  // 프록시 실패 시 시장데이터.json(서버 수집·안정)으로 보강 → N/A 방지
+  // ①글로벌 공통지표(EEM·US VIX·DXY)는 미국 레포 JSON 한 곳에서 받아 모든 탭 동일하게 정규화 (India VIX는 인도 고유라 제외)
+  // ②자기 레포 JSON으로 나머지 N/A 보강
   try {
-    if (!nifty||!inda||!usdinr||!dxy||!eem||!vix||!indiavix||!crude||!china) {
-      const jr = await fetch('시장데이터.json?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
-      if (jr) {
-        const mk=(p,pc)=>(p!=null&&p!==0)?{price:p,pct:pc||0,prev:p,open:p,high:p,low:p,high52:p,low52:p,_stale:true}:null;
-        if(!nifty   && jr.nifty!=null)    nifty   =mk(jr.nifty, jr.pct);
-        if(!inda    && jr.inda!=null)     inda    =mk(jr.inda, jr.inda_pct);
-        if(!usdinr  && jr.usdinr!=null)   usdinr  =mk(jr.usdinr, 0);
-        if(!dxy     && jr.dxy!=null)      dxy     =mk(jr.dxy, 0);
-        if(!eem     && jr.eem!=null)      eem     =mk(jr.eem, jr.eem_pct);
-        if(!vix     && jr.us_vix!=null)   vix     =mk(jr.us_vix, 0);
-        if(!indiavix&& jr.india_vix!=null)indiavix=mk(jr.india_vix, 0);
-        if(!crude   && jr.crude!=null)    crude   =mk(jr.crude, 0);
-        if(!china   && jr.china!=null)    china   =mk(jr.china, jr.china_pct);
-      }
+    const mk=(p,pc)=>(p!=null&&p!==0)?{price:p,pct:pc||0,prev:p,open:p,high:p,low:p,high52:p,low52:p,_stale:true}:null;
+    const gj = await fetch('https://raw.githubusercontent.com/bssu3001-oss/us-market-dashboard/main/'+encodeURIComponent('시장데이터.json')).then(r=>r.ok?r.json():null).catch(()=>null);
+    if (gj) {
+      if (gj.eem!=null) eem = mk(gj.eem, gj.eem_pct);
+      if (gj.vix!=null) vix = mk(gj.vix, 0);
+      if (gj.dxy!=null) dxy = mk(gj.dxy, 0);
+    }
+    const jr = await fetch('시장데이터.json?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
+    if (jr) {
+      if(!eem     && jr.eem!=null)      eem     =mk(jr.eem, jr.eem_pct);
+      if(!vix     && jr.us_vix!=null)   vix     =mk(jr.us_vix, 0);
+      if(!dxy     && jr.dxy!=null)      dxy     =mk(jr.dxy, 0);
+      if(!nifty   && jr.nifty!=null)    nifty   =mk(jr.nifty, jr.pct);
+      if(!inda    && jr.inda!=null)     inda    =mk(jr.inda, jr.inda_pct);
+      if(!usdinr  && jr.usdinr!=null)   usdinr  =mk(jr.usdinr, 0);
+      if(!indiavix&& jr.india_vix!=null)indiavix=mk(jr.india_vix, 0);
+      if(!crude   && jr.crude!=null)    crude   =mk(jr.crude, 0);
+      if(!china   && jr.china!=null)    china   =mk(jr.china, jr.china_pct);
     }
   } catch(e) {}
 
@@ -986,6 +991,21 @@ function applyAnalysis(ag) {
       }
     }
   }
+  bumpDangerForRSI();
+}
+
+// RSI 과매수(≥75)는 단기 위험을 올림 → 위험도가 '낮음'이면 '보통'으로 끌어올림
+function bumpDangerForRSI() {
+  const dEl = document.getElementById('sc-danger');
+  const rEl = document.getElementById('badge-rsi');
+  if (!dEl || !rEl) return;
+  const m = (rEl.textContent||'').match(/RSI\s*([\d.]+)/);
+  if (!m) return;
+  const rsi = parseFloat(m[1]);
+  if (rsi >= 75 && /낮음/.test(dEl.textContent)) {
+    dEl.textContent = '위험도 보통';
+    dEl.style.background = '#fdf6e8'; dEl.style.color = '#BA7517';
+  }
 }
 
 async function updateAI(liveData) {
@@ -1086,6 +1106,7 @@ ${newsLines || '뉴스 없음'}`;
       if (t && ag[k]?.cls && !_badTxt.test(t)) setBadge(domId, t, ag[k].cls);
     });
     recalcScorecard();
+    bumpDangerForRSI();
   } catch(e) { console.warn('AI error:', e); if(onelinerEl) onelinerEl.textContent=_ruleOneliner; }
 }
 
