@@ -521,9 +521,6 @@ async function fetchAllLive() {
       const mean=rets.reduce((a,b)=>a+b)/rets.length;
       vol=Math.sqrt(rets.reduce((a,b)=>a+(b-mean)**2,0)/rets.length);
     }
-    // RSI approx from daily pct
-    const pct1d=nifty?.pct||0;
-    setBadge('badge-rsi',`1일 모멘텀 ${pct1d>=0?'▲':'▼'}${Math.abs(pct1d).toFixed(2)}%`,pct1d>1?'badge-g':pct1d<-1?'badge-r':'badge-b');
     // MA
     let maBadge='badge-y',maText='혼조';
     if (ma5&&ma13&&ma26) {

@@ -161,7 +161,7 @@
       else if (rsi >= 45) { lbl = '중립'; cls = 'badge-b'; }
       else if (rsi >= 30) { lbl = '약세'; cls = 'badge-y'; }
       else { lbl = '과매도 — 반등 기대'; cls = 'badge-g'; }
-      setBadge('tech-rsi', `RSI ${rsi.toFixed(1)} — ${lbl}`, cls);
+      setBadge('badge-rsi', `RSI ${rsi.toFixed(1)} — ${lbl}`, cls);
     }
 
     // 이평선 배열 (MA5 / MA13 / MA26 주봉)
