@@ -148,13 +148,22 @@ def fetch_market_data():
 
     # 보조 지표
     india_vix = us_vix = crude = usdinr = None
-    for ticker_sym, var_name in [("^INDIAVIX","india_vix"),("^VIX","us_vix"),("BZ=F","crude"),("USDINR=X","usdinr")]:
+    inda = inda_pct = dxy = eem = eem_pct = china = china_pct = None
+    for ticker_sym, var_name in [("^INDIAVIX","india_vix"),("^VIX","us_vix"),("BZ=F","crude"),("USDINR=X","usdinr"),
+                                  ("INDA","inda"),("DX-Y.NYB","dxy"),("EEM","eem"),("FXI","china")]:
         try:
-            val = yf.Ticker(ticker_sym).fast_info.last_price
+            t = yf.Ticker(ticker_sym)
+            val = t.fast_info.last_price
+            prev_c = t.fast_info.previous_close
+            chg = round((val - prev_c) / prev_c * 100, 2) if prev_c else 0
             if var_name == "india_vix": india_vix = round(val, 1)
             elif var_name == "us_vix": us_vix = round(val, 1)
             elif var_name == "crude": crude = round(val, 1)
             elif var_name == "usdinr": usdinr = round(val, 2)
+            elif var_name == "inda": inda = round(val, 2); inda_pct = chg
+            elif var_name == "dxy": dxy = round(val, 2)
+            elif var_name == "eem": eem = round(val, 2); eem_pct = chg
+            elif var_name == "china": china = round(val, 2); china_pct = chg
         except Exception:
             pass
 
@@ -171,6 +180,10 @@ def fetch_market_data():
         "us_vix": us_vix,
         "crude": crude,
         "usdinr": usdinr,
+        "inda": inda, "inda_pct": inda_pct,
+        "dxy": dxy,
+        "eem": eem, "eem_pct": eem_pct,
+        "china": china, "china_pct": china_pct,
         "consec_down": consec_down,
     }
 
@@ -499,6 +512,13 @@ def main():
         "us_vix": data["us_vix"],
         "crude": data["crude"],
         "usdinr": data["usdinr"],
+        "inda": data.get("inda"),
+        "inda_pct": data.get("inda_pct"),
+        "dxy": data.get("dxy"),
+        "eem": data.get("eem"),
+        "eem_pct": data.get("eem_pct"),
+        "china": data.get("china"),
+        "china_pct": data.get("china_pct"),
         "score_pct": pct_score,
         "score_label": sc_label,
         "score_emoji": sc_emoji,

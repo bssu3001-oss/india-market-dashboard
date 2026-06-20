@@ -432,7 +432,26 @@ async function fetchQuote(ticker) {
 async function fetchAllLive() {
   const tickers = ['^NSEI','^BSESN','INDA','USDINR=X','INRKRW=X','DX-Y.NYB','EEM','^VIX','^INDIAVIX','BZ=F','FXI'];
   const results = await Promise.all(tickers.map(t=>fetchQuote(t).catch(()=>null)));
-  const [nifty,sensex,inda,usdinr,inrkrw,dxy,eem,vix,indiavix,crude,china] = results;
+  let [nifty,sensex,inda,usdinr,inrkrw,dxy,eem,vix,indiavix,crude,china] = results;
+
+  // 프록시 실패 시 시장데이터.json(서버 수집·안정)으로 보강 → N/A 방지
+  try {
+    if (!nifty||!inda||!usdinr||!dxy||!eem||!vix||!indiavix||!crude||!china) {
+      const jr = await fetch('시장데이터.json?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
+      if (jr) {
+        const mk=(p,pc)=>(p!=null&&p!==0)?{price:p,pct:pc||0,prev:p,open:p,high:p,low:p,high52:p,low52:p,_stale:true}:null;
+        if(!nifty   && jr.nifty!=null)    nifty   =mk(jr.nifty, jr.pct);
+        if(!inda    && jr.inda!=null)     inda    =mk(jr.inda, jr.inda_pct);
+        if(!usdinr  && jr.usdinr!=null)   usdinr  =mk(jr.usdinr, 0);
+        if(!dxy     && jr.dxy!=null)      dxy     =mk(jr.dxy, 0);
+        if(!eem     && jr.eem!=null)      eem     =mk(jr.eem, jr.eem_pct);
+        if(!vix     && jr.us_vix!=null)   vix     =mk(jr.us_vix, 0);
+        if(!indiavix&& jr.india_vix!=null)indiavix=mk(jr.india_vix, 0);
+        if(!crude   && jr.crude!=null)    crude   =mk(jr.crude, 0);
+        if(!china   && jr.china!=null)    china   =mk(jr.china, jr.china_pct);
+      }
+    }
+  } catch(e) {}
 
   if (nifty && inda && inda.price>0) _indaScale = nifty.price/inda.price;
 
@@ -482,14 +501,8 @@ async function fetchAllLive() {
     setBadge('badge-dxy',`DXY ${fmt(dxy.price)} ${arrow(dxy.pct)}${Math.abs(dxy.pct).toFixed(2)} — ${dxy.price>105?'달러 강세':dxy.price>100?'달러 주의':'안정'}`,c);
   }
   if (eem) {
-    const _ce=JSON.parse(localStorage.getItem('shared_eem')||'null');
-    if (_ce&&(Date.now()-_ce.ts)<600000){eem={price:_ce.price,pct:_ce.pct};}
-    else{localStorage.setItem('shared_eem',JSON.stringify({price:eem.price,pct:eem.pct,ts:Date.now()}));}
     const c=eem.pct>=0.5?'badge-g':eem.pct<=-0.5?'badge-r':'badge-b';
     setBadge('badge-eem',`$${fmt(eem.price)} ${arrow(eem.pct)}${Math.abs(eem.pct).toFixed(2)}% — ${eem.pct>=0.5?'신흥국 상승(호재)':eem.pct<=-0.5?'신흥국 하락':'보합'}`,c);
-  } else {
-    const _ce=JSON.parse(localStorage.getItem('shared_eem')||'null');
-    if (_ce&&(Date.now()-_ce.ts)<600000){const c=_ce.pct>=0.5?'badge-g':_ce.pct<=-0.5?'badge-r':'badge-b';setBadge('badge-eem',`$${fmt(_ce.price)} ${_ce.pct>=0?'▲':'▼'}${Math.abs(_ce.pct).toFixed(2)}% — ${_ce.pct>=0.5?'신흥국 상승(호재)':_ce.pct<=-0.5?'신흥국 하락':'보합'}`,c);}
   }
   if (indiavix) {
     const c=indiavix.price>20?'badge-r':indiavix.price>15?'badge-y':'badge-g';
