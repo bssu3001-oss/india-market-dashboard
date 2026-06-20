@@ -1079,9 +1079,11 @@ ${newsLines || '뉴스 없음'}`;
       }
     }
     // 매크로 뉴스 배지 AI 판단 적용
+    const _badTxt = /데이터|부재|없음|미정|불명|모름|N\/A|VIX|^-+$/;
     ['badge_rbi','badge_cpi','badge_gdp','badge_fed','badge_trade','badge_geo'].forEach(k => {
       const domId = k.replace('_', '-');
-      if (ag[k]?.text && ag[k]?.cls) setBadge(domId, ag[k].text, ag[k].cls);
+      const t = (ag[k]?.text || '').trim();
+      if (t && ag[k]?.cls && !_badTxt.test(t)) setBadge(domId, t, ag[k].cls);
     });
     recalcScorecard();
   } catch(e) { console.warn('AI error:', e); if(onelinerEl) onelinerEl.textContent=_ruleOneliner; }
