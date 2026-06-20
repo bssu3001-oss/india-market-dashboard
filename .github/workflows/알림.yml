@@ -1,10 +1,6 @@
 name: 카카오 알림 발송 (인도증시)
 
 on:
-  schedule:
-    - cron: '0 0 * * 1-5'     # 평일 오전 9시 KST
-    - cron: '0 5 * * 1-5'     # 평일 오후 2시 KST
-    - cron: '30 10 * * 1-5'   # 평일 오후 7시 30분 KST
   workflow_dispatch:
 
 permissions:
