@@ -482,7 +482,9 @@ async function fetchAllLive() {
     setBadge('badge-dxy',`DXY ${fmt(dxy.price)} ${arrow(dxy.pct)}${Math.abs(dxy.pct).toFixed(2)} — ${dxy.price>105?'달러 강세':dxy.price>100?'달러 주의':'안정'}`,c);
   }
   if (eem) {
-    localStorage.setItem('shared_eem', JSON.stringify({price:eem.price,pct:eem.pct,ts:Date.now()}));
+    const _ce=JSON.parse(localStorage.getItem('shared_eem')||'null');
+    if (_ce&&(Date.now()-_ce.ts)<600000){eem={price:_ce.price,pct:_ce.pct};}
+    else{localStorage.setItem('shared_eem',JSON.stringify({price:eem.price,pct:eem.pct,ts:Date.now()}));}
     const c=eem.pct>=0.5?'badge-g':eem.pct<=-0.5?'badge-r':'badge-b';
     setBadge('badge-eem',`$${fmt(eem.price)} ${arrow(eem.pct)}${Math.abs(eem.pct).toFixed(2)}% — ${eem.pct>=0.5?'신흥국 상승(호재)':eem.pct<=-0.5?'신흥국 하락':'보합'}`,c);
   } else {
