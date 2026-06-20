@@ -711,7 +711,7 @@ function setNewsBadgesDirect(titles) {
     if      (isG && !isR) { text = gT; cls = 'badge-g'; }
     else if (isR && !isG) { text = rT; cls = 'badge-r'; }
     else if (isG && isR)  { text = nT; cls = 'badge-y'; }
-    else { text = dT; cls = 'badge-y'; }
+    else { const _h = findKw(relKw || []); if (_h) { text = _h; cls = 'badge-b'; } else { text = dT; cls = 'badge-y'; } }
     el.textContent = text; el.className = 'badge ' + cls;
   });
 }
