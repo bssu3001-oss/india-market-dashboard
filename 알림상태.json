@@ -1,8 +1,4 @@
 {
-  "2026-06-17": [
-    "ai_comment_morning",
-    "ai_comment_evening"
-  ],
   "2026-06-18": [
     "ai_comment_evening"
   ],
@@ -14,5 +10,8 @@
     "ai_comment_morning",
     "ai_comment_afternoon",
     "ai_comment_evening"
+  ],
+  "2026-06-21": [
+    "ai_comment_morning"
   ]
 }
