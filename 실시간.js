@@ -203,66 +203,8 @@
   // ── 뉴스 신호 AI 분류 (Anthropic 키 있을 때만) ──
   function getAnthropicKey() { return localStorage.getItem('anthropic_api_key') || ''; }
 
-  const NEWS_TOPICS = {
-    fii:     'India FII foreign institutional investor flows',
-    rbi:     'RBI Reserve Bank India interest rate decision',
-    trade:   'India US trade deal tariff',
-    china:   'India China relations economy',
-    cpi:     'India CPI inflation',
-    gdp:     'India GDP growth',
-    it:      'India IT manufacturing electronics export',
-    rupee:   'India rupee USD INR exchange rate',
-    mideast: 'Middle East geopolitics oil price',
-  };
-
-  async function fetchHeadlines(query) {
-    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en&gl=US&ceid=US:en`;
-    const xml = await proxyText(url, 6000);
-    if (!xml) return [];
-    try {
-      const doc = new DOMParser().parseFromString(xml, 'text/xml');
-      return [...doc.querySelectorAll('item')].slice(0, 3)
-        .map((it) => (it.querySelector('title')?.textContent || '').split(' - ')[0].trim())
-        .filter(Boolean);
-    } catch (e) { return []; }
-  }
-
-  async function updateNewsSignals() {
-    const key = getAnthropicKey();
-    if (!key) {
-      // 키 없으면 정적값 유지 + 작은 안내 (한 번만)
-      const note = document.getElementById('news-live-note');
-      if (note) note.textContent = '🔑 AI 키 입력 시 뉴스 신호가 실시간 갱신됩니다';
-      return;
-    }
-    // 실제로 불러온 주요 뉴스(번역본)를 근거로 분석
-    const items = window.__majorNewsItems || [];
-    const newsBlock = items.slice(0, 8).map((n) => '- ' + (n.title || n.ko)).join('\n');
-    if (!newsBlock) return; // 뉴스 못 가져오면 정적 유지
-
-    const sys = '당신은 인도 증시 뉴스 분석가입니다. 주어진 헤드라인을 보고 각 항목을 평가하세요. 반드시 JSON만 출력합니다.';
-    const prompt = `아래는 오늘 인도 증시 관련 실제 헤드라인입니다.\n${newsBlock}\n\n이 뉴스들을 근거로 각 항목(fii=외국인자금, rbi=금리, trade=미국무역, china=중국관계, cpi=물가, gdp=성장, it=IT/제조, rupee=루피, mideast=중동/유가)에 대해 한국어 12자 이내 label 과 인도 증시 영향 sentiment(good=호재, bad=악재, neutral=중립)를 매기세요. 관련 뉴스가 없으면 neutral.\n다음 형식의 JSON만 출력:\n{"fii":{"label":"...","sentiment":"good|bad|neutral"}, "rbi":{...}, "trade":{...}, "china":{...}, "cpi":{...}, "gdp":{...}, "it":{...}, "rupee":{...}, "mideast":{...}}`;
-
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 700, system: sys, messages: [{ role: 'user', content: prompt }] }),
-      });
-      const d = await r.json();
-      const text = d.content?.[0]?.text || '';
-      const m = text.match(/\{[\s\S]*\}/);
-      if (!m) return;
-      const obj = JSON.parse(m[0]);
-      const sentCls = { good: 'badge-g', bad: 'badge-r', neutral: 'badge-y' };
-      for (const [k, v] of Object.entries(obj)) {
-        if (!v || !v.label) continue;
-        setBadge('news-' + k, v.label, sentCls[v.sentiment] || 'badge-y');
-      }
-      const note = document.getElementById('news-live-note');
-      if (note) note.textContent = '✓ 뉴스 신호 방금 갱신됨';
-    } catch (e) { /* 실패 시 정적 유지 */ }
-  }
+  // (제거됨) NEWS_TOPICS / fetchHeadlines / updateNewsSignals — 호출처 0건 + 존재하지 않는 'news-' 배지 id를 쓰던 죽은 코드.
+  //          매크로 배지는 updateMacroBadgesAI 한 곳에서 전담함.
 
   // ── AI 차트 분석 카드를 실시간 지표로 다시 작성 (AI 불필요·항상 일치) ──
   function buildAnalysis(name, weekly, d5, meta, scale) {
@@ -621,11 +563,8 @@
     // 캐시된 데이터로 즉시 초기 표시
     await loadCachedMarketData();
 
+    // 차트 메타는 아래 주봉 fetch(if(!niftyMeta)…)에서 채움. 옛 refreshChart 호출은 window._charts 의존이라 죽은 코드여서 제거함.
     let niftyMeta = null;
-    try {
-      niftyMeta = await refreshChart('chartNifty', '%5ENSEI');
-      await refreshChart('chartSensex', '%5EBSESN');
-    } catch (e) { /* 차트 실패해도 계속 */ }
 
     // 주요 뉴스 먼저 (번역·전역저장) → 이후 분석/신호에서 반영
     try { await renderMajorNews(); } catch (e) {}
@@ -698,15 +637,18 @@
     const news = window.__majorNews || '';
     const ctx = `당신은 ${MARKET_DESC} 전문 애널리스트입니다. 아래 실시간 데이터와 오늘의 뉴스를 근거로 한국어로 간결하고 구체적으로 답하세요. 마지막에 "본 답변은 참고용입니다"를 덧붙이세요.\n\n[현재 지수] ${price}\n[종합신호] ${sc}\n[지표·신호]\n${signals}` + (news ? `\n\n[오늘의 주요 뉴스]\n${news}` : '');
     try {
+      const _ctrl = new AbortController(); const _to = setTimeout(() => _ctrl.abort(), 15000);
       const r = await fetch('https://api.anthropic.com/v1/messages', {
+        signal: _ctrl.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 700, system: ctx, messages: [{ role: 'user', content: q }] }),
       });
+      clearTimeout(_to);
       const d = await r.json();
       if (d.content && d.content[0] && d.content[0].text) box.textContent = d.content[0].text;
       else box.textContent = '오류: ' + JSON.stringify(d.error || d);
-    } catch (e) { box.textContent = '네트워크 오류: ' + e.message; }
+    } catch (e) { box.textContent = e.name === 'AbortError' ? '응답이 늦어 중단했어요. 다시 시도해주세요.' : '네트워크 오류: ' + e.message; }
   };
 
   // 페이지의 인라인 스크립트(차트 생성)가 끝난 뒤 실행
