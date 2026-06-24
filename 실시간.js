@@ -152,9 +152,10 @@
     if (!weeklyPrices || weeklyPrices.length < 6) return;
     const cur = weeklyPrices[weeklyPrices.length - 1];
 
-    // RSI (14주)
+    // RSI (14주) — index.html(INDA)이 이미 설정했으면(dataset.src==='inda') 덮지 않음 (값 튐 방지)
     const rsi = calcRSI(weeklyPrices, 14);
-    if (rsi != null) {
+    const _rsiEl = document.getElementById('badge-rsi');
+    if (rsi != null && !(_rsiEl && _rsiEl.dataset.src === 'inda')) {
       let lbl, cls;
       if (rsi >= 75) { lbl = '과열'; cls = 'badge-r'; }
       else if (rsi >= 55) { lbl = '중립'; cls = 'badge-b'; }
@@ -429,6 +430,8 @@
       return null;
     }
     function ko(id, gKw, rKw, gT, rT, nT, dT) {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.src === 'ai') return; // AI 분류가 채운 배지는 키워드로 덮지 않음
       const isG = gKw.some(k => all.includes(k));
       const isR = rKw.some(k => all.includes(k));
       let cls, text;
@@ -437,8 +440,7 @@
       else if (isG && isR)  { cls = 'badge-y'; text = nT; }
       else if (dT) { cls = 'badge-y'; text = dT; }
       else { return; }
-      const el = document.getElementById(id);
-      if (el) { el.textContent = text; el.className = 'badge ' + cls; }
+      el.textContent = text; el.className = 'badge ' + cls;
     }
 
     // badge-fii는 INDA ETF 등락 기반으로 index.html에서 직접 설정
@@ -512,7 +514,7 @@
         const label = v.label.trim();
         if (!label || label.includes('없음')) continue;
         const el = document.getElementById(idMap[k]);
-        if (el) { el.textContent = label; el.className = 'badge ' + (sentCls[v.sentiment] || 'badge-y'); }
+        if (el) { el.textContent = label; el.className = 'badge ' + (sentCls[v.sentiment] || 'badge-y'); el.dataset.src = 'ai'; }
       }
       const note = document.getElementById('news-live-note');
       if (note) note.textContent = '✓ AI 뉴스 신호 방금 갱신됨';
@@ -578,6 +580,8 @@
            ma.includes('정배열') ? '정배열(상승)' : ma.includes('역배열') ? '역배열(하락)' : '혼조');
 
       const rsi = d.rsi || 50;
+      const _rsiCacheEl = document.getElementById('badge-rsi');
+      if (!(_rsiCacheEl && _rsiCacheEl.dataset.src === 'inda')) // index.html(INDA)이 이미 채웠으면 캐시로 안 덮음
       setB('badge-rsi', rsi <= 40 ? 'badge-g' : rsi >= 70 ? 'badge-r' : 'badge-y',
            rsi <= 40 ? `RSI ${rsi} 과매도` : rsi >= 70 ? `RSI ${rsi} 과매수` : `RSI ${rsi} 중립`);
 

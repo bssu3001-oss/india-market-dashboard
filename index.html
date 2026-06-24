@@ -544,6 +544,20 @@ async function fetchAllLive() {
       const mean=rets.reduce((a,b)=>a+b)/rets.length;
       vol=Math.sqrt(rets.reduce((a,b)=>a+(b-mean)**2,0)/rets.length);
     }
+    // RSI (14주) — 실시간.js와 동일 기준. index.html이 직접 계산해 프록시 실패와 무관하게 항상 표시
+    if (n >= 15) {
+      let gain=0, loss=0;
+      for (let i=n-14; i<n; i++) { const diff=prices[i]-prices[i-1]; if(diff>=0) gain+=diff; else loss-=diff; }
+      const rsi14 = loss===0 ? 100 : 100 - 100/(1 + (gain/14)/(loss/14));
+      let rLbl, rCls;
+      if (rsi14>=75) { rLbl='과열'; rCls='badge-r'; }
+      else if (rsi14>=45) { rLbl='중립'; rCls='badge-b'; }
+      else if (rsi14>=30) { rLbl='약세'; rCls='badge-y'; }
+      else { rLbl='과매도 — 반등 기대'; rCls='badge-g'; }
+      setBadge('badge-rsi', `RSI ${rsi14.toFixed(1)} — ${rLbl}`, rCls);
+      const _rEl = document.getElementById('badge-rsi');
+      if (_rEl) _rEl.dataset.src = 'inda'; // index.html(INDA)이 RSI 권한 → 실시간.js(NSEI)가 덮어 값이 튀지 않게
+    }
     // MA
     let maBadge='badge-y',maText='혼조';
     if (ma5&&ma13&&ma26) {
@@ -566,6 +580,9 @@ async function fetchAllLive() {
     }
     recalcScorecard();
     buildChecklist();
+    // 종합신호 칩(이평/모멘텀/RSI…)을 최종 지표로 다시 그림 → 칩과 기술지표 배지의 RSI가 항상 일치
+    // (AI 텍스트는 안 건드리고 칩 HTML만 교체. 키가 있어도 칩이 캐시값에서 안 멈춤)
+    try { const _ra = ruleBasedAnalysis(_liveData); const _sd = document.getElementById('sc-desc'); if (_sd && _ra.sc_desc) _sd.innerHTML = _ra.sc_desc; } catch(e) {}
     // 분석 텍스트는 실시간.js가 뉴스 로드 후 처리하므로 여기선 생략
   });
 
@@ -728,13 +745,14 @@ function setNewsBadgesDirect(titles) {
   cfg.forEach(([id, gKw, rKw, gT, rT, nT, relKw, dT]) => {
     const el = document.getElementById(id);
     if (!el) return;
+    if (el.dataset.src === 'ai') return; // AI 분류가 이미 채운 배지는 키워드로 덮지 않음
     const isG = gKw.some(k => all.includes(k));
     const isR = rKw.some(k => all.includes(k));
     let text, cls;
     if      (isG && !isR) { text = gT; cls = 'badge-g'; }
     else if (isR && !isG) { text = rT; cls = 'badge-r'; }
     else if (isG && isR)  { text = nT; cls = 'badge-y'; }
-    else { const _h = findKw(relKw || []); if (_h) { text = _h; cls = 'badge-b'; } else { text = dT; cls = 'badge-y'; } }
+    else { text = dT; cls = 'badge-y'; } // 매칭 없으면 깔끔한 기본 라벨 (원문 헤드라인 금지)
     el.textContent = text; el.className = 'badge ' + cls;
   });
 }
@@ -1021,7 +1039,8 @@ async function updateAI(liveData) {
   if (onelinerEl) onelinerEl.textContent = '🤖 AI 분석 중...';
 
   const n = liveData?.nifty;
-  const _aiNews = (window.__majorNewsItems || []).map(n => n.ko || n.title).filter(Boolean);
+  let _aiNews = (window.__majorNewsItems || []).map(n => n.ko || n.title).filter(Boolean);
+  if (!_aiNews.length) _aiNews = (window.__newsForAnalysis || []).filter(Boolean); // 번역 뉴스 없으면 원본 헤드라인 사용
   const newsLines = _aiNews.slice(0, 8).map(t => '- ' + t).join('\n');
   const maText  = document.getElementById('badge-ma')?.textContent  || '';
   const momText = document.getElementById('badge-mom')?.textContent || '';
@@ -1102,7 +1121,11 @@ ${newsLines || '뉴스 없음'}`;
     ['badge_rbi','badge_cpi','badge_gdp','badge_fed','badge_trade','badge_geo'].forEach(k => {
       const domId = k.replace('_', '-');
       const t = (ag[k]?.text || '').trim();
-      if (t && ag[k]?.cls && !_badTxt.test(t)) setBadge(domId, t, ag[k].cls);
+      if (t && ag[k]?.cls && !_badTxt.test(t)) {
+        setBadge(domId, t, ag[k].cls);
+        const _el = document.getElementById(domId);
+        if (_el) _el.dataset.src = 'ai'; // 키워드 분류가 덮지 못하게 표시
+      }
     });
     recalcScorecard();
     bumpDangerForRSI();
