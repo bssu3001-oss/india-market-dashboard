@@ -401,7 +401,19 @@
     }
     // 같은 날짜 중복(장중 마지막 봉) 제거 — 마지막 값 우선
     var map = {}; out.forEach(function (c) { map[c.date] = c; });
-    return Object.keys(map).sort().map(function (k) { return map[k]; });
+    var result = Object.keys(map).sort().map(function (k) { return map[k]; });
+    // 야후 일봉이 최근 거래일 종가를 아직 안 채운 경우(close=null로 누락) → meta(실시간 시세)로 마지막 봉 보완
+    var m = res.meta || {};
+    if (m.regularMarketPrice != null && m.regularMarketTime) {
+      var md = tzDate(m.regularMarketTime);
+      var last = result[result.length - 1];
+      if (!last || last.date < md) {
+        result.push({ date: md, open: m.regularMarketOpen || m.regularMarketPrice, high: m.regularMarketDayHigh || m.regularMarketPrice, low: m.regularMarketDayLow || m.regularMarketPrice, close: m.regularMarketPrice, volume: m.regularMarketVolume || 0 });
+      } else if (last.date === md && last.close == null) {
+        last.close = m.regularMarketPrice;
+      }
+    }
+    return result;
   }
 
   // ═══════════════ 렌더 ═══════════════
