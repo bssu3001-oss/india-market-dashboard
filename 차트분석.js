@@ -485,7 +485,7 @@
     var rsiColor = rsi >= 70 ? 'var(--k-red)' : (rsi <= 30 ? 'var(--k-green)' : 'var(--k-text)');
     var rsiLabel = rsi >= 70 ? '과열' : (rsi <= 30 ? '과매도' : '정상');
     var items = [
-      { label: 'RSI (14)', val: (rsi != null ? rsi : '–') + ' <span style="font-size:11px">' + rsiLabel + '</span>', style: 'color:' + rsiColor },
+      { label: 'RSI (일봉 14)', val: (rsi != null ? rsi : '–') + ' <span style="font-size:11px">' + rsiLabel + '</span>', style: 'color:' + rsiColor },
       { label: '거래량 추세', val: vol.trend || '–', cls: vol.trend === '증가' ? 'up' : 'down' },
       { label: 'vs 20일 평균', val: pct(vol.vs_ma20_pct), cls: colorClass(vol.vs_ma20_pct) },
       { label: '60일 고점 대비', val: pct(pos.from_60d_high_pct), cls: 'down' },

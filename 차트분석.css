@@ -43,6 +43,9 @@
 #kodex-analysis .tgl-dot { width:7px; height:7px; border-radius:50%; background:currentColor; flex-shrink:0; }
 #kodex-analysis #k-chart-wrap { position:relative; }
 #kodex-analysis #k-chart-container { width:100%; }
+/* 차트 패널: 박스(테두리·배경) 제거 + 화면 좌우 끝까지 확장 (가격축이 오른쪽 끝에 붙음) */
+#kodex-analysis .panel-chart { background:transparent; border:none; border-radius:0; padding:12px 0; margin-left:-16px; margin-right:-16px; }
+#kodex-analysis .panel-chart > *:not(#k-chart-wrap) { padding-left:16px; padding-right:16px; }
 #kodex-analysis #k-chart-popup { position:absolute; z-index:20; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:10px 13px; font-size:12px; min-width:210px; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,0.18); display:none; }
 #kodex-analysis #k-chart-popup .pp-date { font-weight:700; color:var(--text); font-size:13px; margin-bottom:7px; }
 #kodex-analysis #k-chart-popup table { width:100%; border-collapse:collapse; }
