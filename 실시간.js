@@ -303,6 +303,8 @@
   }
 
   async function fetchNewsItems() {
+    var _NEWS_CACHE = 'major_news_india';
+    try { var _fc = JSON.parse(localStorage.getItem(_NEWS_CACHE) || 'null'); if (_fc && _fc.items && _fc.items.length && Date.now() - _fc.at < 900000) return _fc.items; } catch (e) {}
     const sets = await Promise.all(NEWS_FEEDS.map(async (f) => {
       try {
         const parseXml = (xml) => {
@@ -340,6 +342,8 @@
       seen.add(k); all.push(n);
     }));
     all.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    if (all.length) { try { localStorage.setItem(_NEWS_CACHE, JSON.stringify({ items: all.slice(0, 8), at: Date.now() })); } catch (e) {} return all.slice(0, 8); }
+    try { var _cc = JSON.parse(localStorage.getItem(_NEWS_CACHE) || 'null'); if (_cc && _cc.items && _cc.items.length) return _cc.items; } catch (e) {}
     return all.slice(0, 8);
   }
 
