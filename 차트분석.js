@@ -394,24 +394,36 @@
   }
   function toCandles(res) {
     var ts = res.timestamp || [], q = res.indicators.quote[0];
-    var out = [];
+    var out = [], lastRaw = null;
     for (var i = 0; i < ts.length; i++) {
-      if (q.close[i] == null || q.open[i] == null) continue;
-      out.push({ date: tzDate(ts[i]), open: q.open[i], high: q.high[i], low: q.low[i], close: q.close[i], volume: q.volume[i] || 0 });
-    }
-    // 같은 날짜 중복(장중 마지막 봉) 제거 — 마지막 값 우선
-    var map = {}; out.forEach(function (c) { map[c.date] = c; });
-    var result = Object.keys(map).sort().map(function (k) { return map[k]; });
-    // 야후 일봉이 최근 거래일 종가를 아직 안 채운 경우(close=null로 누락) → meta(실시간 시세)로 마지막 봉 보완
-    var m = res.meta || {};
-    if (m.regularMarketPrice != null && m.regularMarketTime) {
-      var md = tzDate(m.regularMarketTime);
-      var last = result[result.length - 1];
-      if (!last || last.date < md) {
-        result.push({ date: md, open: m.regularMarketOpen || m.regularMarketPrice, high: m.regularMarketDayHigh || m.regularMarketPrice, low: m.regularMarketDayLow || m.regularMarketPrice, close: m.regularMarketPrice, volume: m.regularMarketVolume || 0 });
-      } else if (last.date === md && last.close == null) {
-        last.close = m.regularMarketPrice;
+      var o = q.open[i], h = q.high[i], l = q.low[i], c = q.close[i];
+      if (o == null) continue;                 // 데이터 없는 봉 제외
+      if (c == null) {                          // 종가만 null = 야후 미확정 최근 봉 → 실제 시·고·저 보관
+        lastRaw = { date: tzDate(ts[i]), open: o, high: h, low: l, volume: q.volume[i] || 0 };
+        continue;
       }
+      var hi = h != null ? Math.max(h, o, c) : Math.max(o, c);  // 야후 OHLC 오류 방어: 고가는 항상 몸통 위
+      var lo = l != null ? Math.min(l, o, c) : Math.min(o, c);  // 저가는 항상 몸통 아래
+      out.push({ date: tzDate(ts[i]), open: o, high: hi, low: lo, close: c, volume: q.volume[i] || 0 });
+    }
+    var map = {}; out.forEach(function (cc) { map[cc.date] = cc; });
+    var result = Object.keys(map).sort().map(function (k) { return map[k]; });
+    var m = res.meta || {}, mp = m.regularMarketPrice;
+    var md = m.regularMarketTime ? tzDate(m.regularMarketTime) : null;
+    var last = result[result.length - 1];
+    // ① 종가 null로 빠진 최근 봉을 meta 실시간가로 완성 — 시·고·저는 실제 봉값 유지(도지 방지)
+    if (lastRaw && mp != null && (!last || last.date < lastRaw.date)) {
+      var hi = lastRaw.high != null ? lastRaw.high : (m.regularMarketDayHigh != null ? m.regularMarketDayHigh : Math.max(lastRaw.open, mp));
+      var lo = lastRaw.low != null ? lastRaw.low : (m.regularMarketDayLow != null ? m.regularMarketDayLow : Math.min(lastRaw.open, mp));
+      result.push({ date: lastRaw.date, open: lastRaw.open, high: Math.max(hi, lastRaw.open, mp), low: Math.min(lo, lastRaw.open, mp), close: mp, volume: lastRaw.volume });
+      last = result[result.length - 1];
+    }
+    // ② 그래도 최근 거래일 봉이 비면 meta만으로 생성
+    if (mp != null && md && (!last || last.date < md)) {
+      var mo = m.regularMarketOpen != null ? m.regularMarketOpen : mp;
+      var mh = m.regularMarketDayHigh != null ? m.regularMarketDayHigh : mp;
+      var ml = m.regularMarketDayLow != null ? m.regularMarketDayLow : mp;
+      result.push({ date: md, open: mo, high: Math.max(mh, mo, mp), low: Math.min(ml, mo, mp), close: mp, volume: m.regularMarketVolume || 0 });
     }
     return result;
   }
