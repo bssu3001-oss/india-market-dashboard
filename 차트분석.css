@@ -1,0 +1,58 @@
+/* kodex 차트/분석 영역 스타일 (네임스페이스 #kodex-analysis 로 기존 스타일과 격리) */
+#kodex-analysis { --k-up:#e53935; --k-down:#1976d2; --k-green:#1a7f37; --k-red:#cf222e; --k-gold:#BA7517; --k-muted:var(--text2); --k-text:var(--text); margin-top:8px; }
+@media (prefers-color-scheme: dark){ #kodex-analysis{ --k-green:#4cd964; --k-red:#ff6b6b; --k-gold:#f2c94c; } }
+#kodex-analysis .panel { background:var(--card-bg); border:0.5px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
+#kodex-analysis .panel-title { font-size:13px; font-weight:600; color:var(--k-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
+#kodex-analysis .banner { padding:12px 16px; border-radius:10px; font-weight:600; margin-bottom:12px; font-size:15px; }
+#kodex-analysis .banner-buy { background:rgba(38,166,154,0.15); border:1px solid var(--k-green); color:var(--k-green); }
+#kodex-analysis .banner-warn { background:rgba(240,180,41,0.12); border:1px solid var(--k-gold); color:var(--k-gold); }
+#kodex-analysis .banner-sell { background:rgba(239,83,80,0.12); border:1px solid var(--k-red); color:var(--k-red); }
+#kodex-analysis .signal-verdict { font-size:24px; font-weight:700; }
+#kodex-analysis .signal-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-left:10px; vertical-align:middle; }
+#kodex-analysis .badge-buy { background:rgba(38,166,154,0.2); color:var(--k-green); }
+#kodex-analysis .badge-watch { background:rgba(240,180,41,0.2); color:var(--k-gold); }
+#kodex-analysis .badge-sell { background:rgba(239,83,80,0.2); color:var(--k-red); }
+#kodex-analysis .reasons-list { margin-top:10px; list-style:none; }
+#kodex-analysis .reasons-list li { padding:4px 0; color:var(--k-muted); font-size:13px; }
+#kodex-analysis .reasons-list li::before { content:"• "; color:#0969da; }
+#kodex-analysis .chart-controls { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+#kodex-analysis .btn { background:var(--bg); border:0.5px solid var(--border); color:var(--k-muted); padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:500; white-space:nowrap; }
+#kodex-analysis .btn.active { background:var(--text); border-color:var(--text); color:var(--bg); font-weight:700; }
+#kodex-analysis .stat-card { background:var(--bg); border-radius:10px; padding:10px; }
+#kodex-analysis .stat-label { font-size:11px; color:var(--k-muted); }
+#kodex-analysis .stat-value { font-size:15px; font-weight:600; margin-top:2px; }
+#kodex-analysis .data-table { width:100%; border-collapse:collapse; font-size:13px; }
+#kodex-analysis .data-table th { color:var(--k-muted); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--border); text-align:right; }
+#kodex-analysis .data-table th:first-child { text-align:left; }
+#kodex-analysis .data-table td { padding:6px 8px; border-bottom:0.5px solid var(--border); text-align:right; }
+#kodex-analysis .data-table td:first-child { text-align:left; color:var(--k-muted); }
+#kodex-analysis .up { color:var(--k-up); }
+#kodex-analysis .down { color:var(--k-down); }
+#kodex-analysis .insight-text { line-height:1.8; color:var(--k-text); font-size:14px; }
+#kodex-analysis .scenario-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:12px; }
+#kodex-analysis .bt-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:12px; }
+#kodex-analysis .overlay-toggles { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+#kodex-analysis .tgl { display:flex; align-items:center; gap:4px; background:var(--bg); border:0.5px solid var(--border); color:var(--k-muted); padding:3px 10px; border-radius:16px; cursor:pointer; font-size:11px; white-space:nowrap; }
+#kodex-analysis .tgl.on { font-weight:600; }
+#kodex-analysis .tgl.on[data-k="ma5"] { color:#d4a017; border-color:#d4a017; }
+#kodex-analysis .tgl.on[data-k="ma20"] { color:#c451d6; border-color:#c451d6; }
+#kodex-analysis .tgl.on[data-k="ma60"] { color:#3a9fdb; border-color:#3a9fdb; }
+#kodex-analysis .tgl.on[data-k="ma120"] { color:#e8632b; border-color:#e8632b; }
+#kodex-analysis .tgl.on[data-k="sr"] { color:#1f9c90; border-color:#1f9c90; }
+#kodex-analysis .tgl.on[data-k="vol"] { color:var(--text2); border-color:var(--text2); }
+#kodex-analysis .tgl-dot { width:7px; height:7px; border-radius:50%; background:currentColor; flex-shrink:0; }
+#kodex-analysis #k-chart-wrap { position:relative; }
+#kodex-analysis #k-chart-container { width:100%; }
+#kodex-analysis #k-chart-popup { position:absolute; z-index:20; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:10px 13px; font-size:12px; min-width:210px; pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,0.18); display:none; }
+#kodex-analysis #k-chart-popup .pp-date { font-weight:700; color:var(--text); font-size:13px; margin-bottom:7px; }
+#kodex-analysis #k-chart-popup table { width:100%; border-collapse:collapse; }
+#kodex-analysis #k-chart-popup td { padding:2px 0; }
+#kodex-analysis #k-chart-popup td:first-child { color:var(--k-muted); width:40px; }
+#kodex-analysis #k-chart-popup td:nth-child(2) { text-align:right; font-weight:600; padding-right:6px; }
+#kodex-analysis #k-chart-popup td:nth-child(3) { text-align:right; font-size:11px; width:52px; }
+#kodex-analysis #k-chart-popup .pp-sep { border-top:1px solid var(--border); margin:6px 0; }
+#kodex-analysis #k-chart-popup .pp-ma-hd { color:var(--k-muted); font-size:11px; margin-bottom:4px; }
+@media (max-width:600px){
+  #kodex-analysis .data-table { display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
+  #kodex-analysis #k-chart-popup { max-width:88vw; min-width:0; }
+}

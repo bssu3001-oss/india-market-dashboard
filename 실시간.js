@@ -35,6 +35,38 @@
     try { return JSON.parse(txt); } catch (e) { return null; }
   }
 
+  // ── jina.ai 리더 폴백 ── 구글뉴스가 공용 프록시 IP를 막을 때 사용.
+  // RSS를 텍스트로 변환해 받아 제목/링크/날짜를 파싱한다(자체 인프라라 차단에 강함).
+  function parseJinaNews(txt, source) {
+    const lines = txt.split('\n').map((s) => s.trim()).filter(Boolean);
+    const items = [], seen = new Set();
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/(https:\/\/news\.google\.com\/rss\/articles\/[^\s)]+)/);
+      if (!m) continue;
+      const link = m[1];
+      if (seen.has(link)) continue;
+      let title = (lines[i - 1] || '').replace(/\s+[-–]\s+[^-–]+$/, '').trim();
+      if (!title || title.length < 4) {
+        title = lines[i].split(/https?:\/\//)[0].replace(/\s{2,}[^\s].*$/, '').replace(/\s+[-–]\s+[^-–]+$/, '').trim();
+      }
+      if (!title || title.length < 4) continue;
+      const ts = Date.parse(lines[i + 1] || '') ? Date.parse(lines[i + 1]) / 1000 : 0;
+      seen.add(link);
+      items.push({ title, link, source: source || '구글뉴스', isKo: true, ts });
+    }
+    return items.slice(0, 12);
+  }
+  async function jinaNewsItems(feedUrl, source, timeoutMs) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs || 14000);
+      const r = await fetch('https://r.jina.ai/' + feedUrl, { headers: { 'X-Return-Format': 'text' }, signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) return [];
+      return parseJinaNews(await r.text(), source);
+    } catch (e) { return []; }
+  }
+
   // 영문 → 한국어 번역 (구글 번역, 브라우저 직접 호출 OK)
   async function translateKo(text) {
     if (!text) return text;
@@ -287,11 +319,12 @@
         })).filter((x) => x.title && x.link.startsWith('http'));
         // proxyText와 rss2json 동시 시작 — 먼저 데이터가 오는 쪽 사용
         const items = await new Promise((resolve) => {
-          let done = false; let pending = 2;
+          let done = false; let pending = 3;
           const tryResolve = (r) => { if (!done && r.length) { done = true; resolve(r); } if (--pending === 0 && !done) resolve([]); };
           proxyText(f.url, 10000).then(xml => tryResolve(xml ? parseXml(xml) : [])).catch(() => tryResolve([]));
           fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f.url)}`, { signal: AbortSignal.timeout(10000) })
             .then(r => r.ok ? r.json() : null).then(d => tryResolve(d ? parseRss(d) : [])).catch(() => tryResolve([]));
+          jinaNewsItems(f.url, f.source, 14000).then(it => tryResolve(it || [])).catch(() => tryResolve([]));
         });
         return items;
       } catch (e) { return []; }

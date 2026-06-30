@@ -86,6 +86,7 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
 .ai-response { font-size: 13px; color: var(--text); line-height: 1.8; padding: 14px; background: var(--bg); border-radius: 10px; min-height: 60px; white-space: pre-wrap; }
 .footer { font-size: 11px; color: var(--text3); text-align: center; margin-top: 20px; }
 </style>
+<link rel="stylesheet" href="차트분석.css">
 </head>
 <body>
 <div class="container">
@@ -103,6 +104,7 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--warn-text);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">종합 매수 신호</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">매크로 · 뉴스 · 기술 종합</div>
         <div id="sc-emoji" style="font-size:28px;font-weight:700;color:var(--warn-text);">📌 관망</div>
       </div>
       <div style="text-align:right;">
@@ -164,19 +166,85 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
     <div class="sub-right" id="sensex-ohlc">시가: --<br>고: -- / 저: --</div>
   </div>
 
-  <div class="period-tabs" id="nifty-tabs">
-    <div class="period-tab active" onclick="switchPeriod('d1',this)">일</div>
-    <div class="period-tab" onclick="switchPeriod('d5',this)">5일</div>
-    <div class="period-tab" onclick="switchPeriod('d30',this)">1개월</div>
-    <div class="period-tab" onclick="switchPeriod('mo3',this)">3개월</div>
-    <div class="period-tab" onclick="switchPeriod('mo6',this)">6개월</div>
-    <div class="period-tab" onclick="switchPeriod('yr1',this)">1년</div>
-  </div>
-  <div class="card" style="padding:12px 12px 10px;">
-    <div class="chart-wrap"><canvas id="chartNIFTY"></canvas></div>
-    <div style="font-size:11px;color:var(--text3);margin-top:-4px;margin-bottom:4px;">* INDA ETF 기준 환산 추정치 (Yahoo Finance 실시간)</div>
-  </div>
+  <!-- applyAnalysis가 쓰는 숨김 요소 (라인 차트 제거 후에도 유지해야 종합신호 상세가 정상 작동) -->
   <div id="ai-chart-analysis" style="display:none;"></div>
+
+  <div id="kodex-analysis">
+    <div id="k-banner" class="banner" style="display:none"></div>
+
+    <div class="panel" id="k-commentary-card">
+      <div class="panel-title" id="k-commentary-title">오늘의 흐름</div>
+      <p class="insight-text" id="k-commentary-body"></p>
+      <div id="k-commentary-timeline" style="margin-top:8px;font-size:12px;color:var(--k-muted);font-variant-numeric:tabular-nums;line-height:1.9"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">차트 기술 시그널</div>
+      <div style="font-size:11px;font-weight:400;color:var(--k-muted);margin:-6px 0 10px;text-transform:none;letter-spacing:0;line-height:1.5">순수 차트(가격·이평·거래량·지지저항)만 보는 신호예요. 아래 매매 시나리오·백테스트의 근거이고, 위 ‘종합 매수 신호’(매크로·뉴스 포함)와는 기준이 다릅니다.</div>
+      <div><span class="signal-verdict" id="k-signal-verdict">–</span><span class="signal-badge" id="k-signal-badge">–</span></div>
+      <ul class="reasons-list" id="k-signal-reasons"></ul>
+      <div id="k-signal-bt-note"></div>
+    </div>
+
+    <div class="panel panel-chart">
+      <div class="panel-title">가격 차트</div>
+      <div class="overlay-toggles">
+        <button class="tgl on" data-k="ma5" onclick="toggleOverlay('ma5')"><span class="tgl-dot"></span>MA5</button>
+        <button class="tgl on" data-k="ma20" onclick="toggleOverlay('ma20')"><span class="tgl-dot"></span>MA20</button>
+        <button class="tgl on" data-k="ma60" onclick="toggleOverlay('ma60')"><span class="tgl-dot"></span>MA60</button>
+        <button class="tgl on" data-k="ma120" onclick="toggleOverlay('ma120')"><span class="tgl-dot"></span>MA120</button>
+        <button class="tgl on" data-k="sr" onclick="toggleOverlay('sr')">지지·저항</button>
+        <button class="tgl on" data-k="vol" onclick="toggleOverlay('vol')">거래량</button>
+      </div>
+      <div class="chart-controls">
+        <button class="btn" onclick="setChartPeriod('3M',this)">3개월</button>
+        <button class="btn active" onclick="setChartPeriod('6M',this)">6개월</button>
+        <button class="btn" onclick="setChartPeriod('1Y',this)">1년</button>
+        <button class="btn" onclick="setChartPeriod('ALL',this)">전체</button>
+        <span style="flex:1"></span>
+        <button class="btn active" onclick="setChartType('daily',this)">일봉</button>
+        <button class="btn" onclick="setChartType('weekly',this)">주봉</button>
+      </div>
+      <div id="k-chart-wrap">
+        <div id="k-chart-container"></div>
+        <div id="k-chart-popup">
+          <div class="pp-date" id="k-pp-date"></div>
+          <table id="k-pp-ohlcv"></table>
+          <div class="pp-sep"></div>
+          <div class="pp-ma-hd">주가이동평균</div>
+          <table id="k-pp-ma"></table>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--k-muted);margin-top:6px">* Yahoo Finance 실시간 (^NSEI) · 캔들/이평/거래량 토글, 길게 눌러(모바일) 시세 확인</div>
+    </div>
+
+    <div class="panel"><div class="panel-title">추세 분석</div><div id="k-trend-content"></div></div>
+    <div class="panel"><div class="panel-title">지지선 · 저항선</div><div id="k-sr-content"></div></div>
+    <div class="panel"><div class="panel-title">모멘텀 · 과열 지표</div><div id="k-momentum-content"></div></div>
+
+    <div class="panel">
+      <div class="panel-title">일별 체결 (최근 20일)</div>
+      <table class="data-table" id="k-trades-table">
+        <thead><tr><th>날짜</th><th>종가</th><th>등락률</th><th>거래량</th></tr></thead>
+        <tbody id="k-trades-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">종합 인사이트 &amp; 매매 시나리오</div>
+      <p class="insight-text" id="k-insight-text"></p>
+      <div class="scenario-grid" id="k-scenario-grid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">시그널 백테스트 (과거 성과)</div>
+      <div class="bt-stats" id="k-bt-stats"></div>
+      <table class="data-table" id="k-bt-table">
+        <thead><tr><th>진입일</th><th>청산일</th><th>진입가</th><th>청산가</th><th>수익률</th><th>사유</th></tr></thead>
+        <tbody id="k-bt-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 
   <hr class="divider">
 
@@ -1172,8 +1240,7 @@ document.getElementById('ai-q').addEventListener('keydown',e=>{if(e.key==='Enter
 // API 키 폼은 사용자가 '키 변경' 버튼을 클릭할 때만 표시
 
 async function init() {
-  const chartData = await loadChart('d1');
-  if (chartData) renderChart(chartData.labels, chartData.prices);
+  // 차트는 차트분석.js(캔들 차트)로 대체됨
   const live = await fetchAllLive().catch(()=>null);
   await fetchNews().catch(()=>{});
   await updateAI(live).catch(()=>{});
@@ -1189,6 +1256,11 @@ setInterval(async()=>{
   await updateAI(live).catch(()=>{});
 },5*60*1000);
 </script>
-<script src="실시간.js?v=20260619"></script>
+<script src="실시간.js?v=20260630"></script>
+<script src="vendor/lightweight-charts.standalone.production.js"></script>
+<script>
+window.KODEX_CFG = { ticker:'%5ENSEI', name:'NIFTY 50', tz:'Asia/Kolkata', openMin:555, closeMin:930, unitPrefix:'', unitSuffix:'', dec:0 };
+</script>
+<script src="차트분석.js?v=1"></script>
 </body>
 </html>
