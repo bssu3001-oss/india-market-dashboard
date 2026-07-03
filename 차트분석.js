@@ -242,8 +242,14 @@
     else reasons.push('RSI ' + rsi.toFixed(0) + ' — 정상 범위');
     if (volTrend === '증가' && volVs > 20) { score += 1; reasons.push('거래량 20일 평균 대비 증가 — 추세에 힘 실림'); }
     else if (volTrend === '감소') { score -= 0.5; reasons.push('거래량 감소 — 추세 신뢰도 낮음'); }
-    if (distSup != null && distSup < 3) { score += 0.5; reasons.push('지지선 근접 (' + distSup.toFixed(1) + '% 위) — 분할 매수 후보'); }
-    if (distRes != null && distRes < 3) { score -= 0.5; reasons.push('저항선 근접 (' + distRes.toFixed(1) + '% 아래) — 익절/관망 구간'); }
+    if (distSup != null && distRes != null && distSup < 3 && distRes < 3) {
+      if (distSup <= distRes) { score += 0.5; reasons.push('지지선 근접 (' + distSup.toFixed(1) + '% 위) — 분할 매수 후보'); }
+      else { score -= 0.5; reasons.push('저항선 근접 (' + distRes.toFixed(1) + '% 아래) — 익절/관망 구간'); }
+    } else if (distSup != null && distSup < 3) {
+      score += 0.5; reasons.push('지지선 근접 (' + distSup.toFixed(1) + '% 위) — 분할 매수 후보');
+    } else if (distRes != null && distRes < 3) {
+      score -= 0.5; reasons.push('저항선 근접 (' + distRes.toFixed(1) + '% 아래) — 익절/관망 구간');
+    }
     var verdict, confidence;
     if (score <= -5 && alignment === '역배열') { verdict = '매도 검토'; confidence = '높음'; }
     else if (alignment === '역배열') { verdict = '관망'; confidence = '높음'; }
