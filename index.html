@@ -257,11 +257,25 @@ body { font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif; background
   <script>
   (function() {
     const EVENTS = [
-      { date: '2026-08-06', label: 'RBI 통화정책위원회' },
-      { date: '2026-07-01', label: '인도 GDP Q1 발표' },
-      { date: '2026-07-30', label: 'FOMC 금리결정' },
-      { date: '2026-09-17', label: 'FOMC 금리결정 (9월)' },
-      { date: '2026-10-01', label: '인도 CPI 발표' },
+      // 공식 일정표 기준 (2026-10-01 조사: 연준·BLS·BCB·IBGE·RBI·MOSPI·BI·IMF SDDS·베트남 정부령·MSCI·FTSE). 2027년 미발표 일정은 제외 — 2027년 초 갱신 필요
+      { date: '2026-10-07', label: 'RBI 통화정책 결정' },
+      { date: '2026-10-12', label: '인도 CPI 발표' },
+      { date: '2026-10-28', label: 'FOMC 금리결정 (미국)' },
+      { date: '2026-11-12', label: '인도 CPI 발표' },
+      { date: '2026-11-30', label: '인도 GDP 발표 (2분기)' },
+      { date: '2026-12-04', label: 'RBI 통화정책 결정' },
+      { date: '2026-12-09', label: 'FOMC 금리결정 (미국)' },
+      { date: '2026-12-12', label: '인도 CPI 발표' },
+      { date: '2027-01-07', label: '인도 연간 GDP 1차 추정 발표' },
+      { date: '2027-01-12', label: '인도 CPI 발표' },
+      { date: '2027-01-27', label: 'FOMC 금리결정 (미국)' },
+      { date: '2027-02-05', label: 'RBI 통화정책 결정' },
+      { date: '2027-02-12', label: '인도 CPI 발표' },
+      { date: '2027-02-26', label: '인도 GDP 발표 (3분기)' },
+      { date: '2027-03-12', label: '인도 CPI 발표' },
+      { date: '2027-03-17', label: 'FOMC 금리결정 (미국)' },
+      { date: '2027-04-28', label: 'FOMC 금리결정 (미국)' },
+      { date: '2027-06-09', label: 'FOMC 금리결정 (미국)' },
     ];
     const today = new Date(); today.setHours(0,0,0,0);
     const upcoming = EVENTS
