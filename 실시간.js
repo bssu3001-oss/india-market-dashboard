@@ -318,7 +318,7 @@
         };
         const parseRss = (d) => (d.items || []).slice(0, 12).map((it) => ({
           title: (it.title || '').trim(), link: (it.link || it.guid || '').trim(),
-          source: f.source, isKo: !!f.isKo, ts: it.pubDate ? (new Date(it.pubDate).getTime() || 0) / 1000 : 0,
+          source: f.source, isKo: !!f.isKo, ts: it.pubDate ? (new Date(/^\d{4}-\d\d-\d\d \d/.test(it.pubDate) ? it.pubDate.replace(' ', 'T') + 'Z' : it.pubDate).getTime() || 0) / 1000 : 0,
         })).filter((x) => x.title && x.link.startsWith('http'));
         // proxyText와 rss2json 동시 시작 — 먼저 데이터가 오는 쪽 사용
         const items = await new Promise((resolve) => {
@@ -344,7 +344,7 @@
     }));
     all.sort((a, b) => (b.ts || 0) - (a.ts || 0));
     if (all.length) { try { localStorage.setItem(_NEWS_CACHE, JSON.stringify({ items: all.slice(0, 8), at: Date.now() })); } catch (e) {} return all.slice(0, 8); }
-    try { var _cc = JSON.parse(localStorage.getItem(_NEWS_CACHE) || 'null'); if (_cc && _cc.items && _cc.items.length) return _cc.items; } catch (e) {}
+    try { var _cc = JSON.parse(localStorage.getItem(_NEWS_CACHE) || 'null'); if (_cc && _cc.items && _cc.items.length && Date.now() - _cc.at < 86400000) return _cc.items; } catch (e) {}
     return all.slice(0, 8);
   }
 
