@@ -50,6 +50,7 @@
         title = lines[i].split(/https?:\/\//)[0].replace(/\s{2,}[^\s].*$/, '').replace(/\s+[-–]\s+[^-–]+$/, '').trim();
       }
       if (!title || title.length < 4) continue;
+      if (/^NFE\/|Google 뉴스|Google News/.test(title)) continue; // 피드 머리말(깨진 제목) 제외
       const ts = Date.parse(lines[i + 1] || '') ? Date.parse(lines[i + 1]) / 1000 : 0;
       seen.add(link);
       items.push({ title, link, source: source || '구글뉴스', isKo: true, ts });
