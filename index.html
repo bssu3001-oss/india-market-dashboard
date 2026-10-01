@@ -418,8 +418,6 @@ async function fetchYahoo(ticker, interval, range) {
   const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
   const proxies = [
     `https://siiiido-proxy.bssu3001.workers.dev/?url=${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
   for (const proxyUrl of proxies) {
     try {
@@ -1271,11 +1269,11 @@ setInterval(async()=>{
   await updateAI(live).catch(()=>{});
 },5*60*1000);
 </script>
-<script src="실시간.js?v=20261001c"></script>
+<script src="실시간.js?v=20261001d"></script>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
 <script>
 window.KODEX_CFG = { ticker:'%5ENSEI', name:'NIFTY 50', tz:'Asia/Kolkata', openMin:555, closeMin:930, unitPrefix:'', unitSuffix:'', dec:0 };
 </script>
-<script src="차트분석.js?v=9"></script>
+<script src="차트분석.js?v=10"></script>
 </body>
 </html>
