@@ -480,21 +480,36 @@ function setBadge(id, text, cls) {
   if (el) { el.textContent=text; el.className='badge '+cls; }
 }
 
-async function fetchQuote(ticker) {
-  const data = await fetchYahoo(ticker, '1d', '1d');
-  if (!data) return null;
-  const meta = data.meta;
-  const price = meta.regularMarketPrice;
-  const prev = meta.chartPreviousClose || meta.previousClose || price;
-  return {
-    price, prev,
-    pct: prev?(price-prev)/prev*100:0,
-    open: meta.regularMarketOpen||prev,
-    high: meta.regularMarketDayHigh||price,
-    low:  meta.regularMarketDayLow||price,
-    high52: meta.fiftyTwoWeekHigh||price,
-    low52:  meta.fiftyTwoWeekLow||price,
-  };
+// 맨 위 시세: 전일종가는 일봉(일별 체결표와 같은 값), 시·고·저는 5분봉에서 계산.
+// 야후가 모르는 값을 0으로 보내는 경우(브라질 등)는 제외.
+function _pos(a) { return (a||[]).filter(function(v){ return v!=null && v>0; }); }
+function fetchQuote(ticker) {
+  return Promise.all([fetchYahoo(ticker, '1d', '5d'), fetchYahoo(ticker, '5m', '1d')]).then(function(r) {
+    var daily = r[0], intra = r[1], base = daily || intra;
+    if (!base) return null;
+    var meta = base.meta, price = meta.regularMarketPrice;
+    var prev = null;
+    if (daily) {
+      var off = daily.meta.gmtoffset || 0, ts = daily.timestamp || [], dq = ((daily.indicators||{}).quote||[])[0] || {};
+      var day = function(t){ return Math.floor((t + off) / 86400); };
+      var today = day(daily.meta.regularMarketTime || ts[ts.length-1]);
+      for (var i = 0; i < ts.length; i++) if (day(ts[i]) < today && (dq.close||[])[i] > 0) prev = dq.close[i];
+    }
+    if (!prev) prev = meta.chartPreviousClose || meta.previousClose || price;
+    var iq = intra ? (((intra.indicators||{}).quote||[])[0] || {}) : {};
+    var opens = _pos(iq.open), highs = _pos(iq.high), lows = _pos(iq.low);
+    if (meta.regularMarketDayHigh > 0) highs.push(meta.regularMarketDayHigh);
+    if (meta.regularMarketDayLow > 0) lows.push(meta.regularMarketDayLow);
+    return {
+      price: price, prev: prev,
+      pct: prev ? (price - prev) / prev * 100 : 0,
+      open: (meta.regularMarketOpen > 0 ? meta.regularMarketOpen : 0) || opens[0] || prev,
+      high: Math.max.apply(null, highs.concat([price])),
+      low:  Math.min.apply(null, lows.concat([price])),
+      high52: meta.fiftyTwoWeekHigh || price,
+      low52:  meta.fiftyTwoWeekLow || price,
+    };
+  });
 }
 
 async function fetchAllLive() {
@@ -1261,6 +1276,6 @@ setInterval(async()=>{
 <script>
 window.KODEX_CFG = { ticker:'%5ENSEI', name:'NIFTY 50', tz:'Asia/Kolkata', openMin:555, closeMin:930, unitPrefix:'', unitSuffix:'', dec:0 };
 </script>
-<script src="차트분석.js?v=8"></script>
+<script src="차트분석.js?v=9"></script>
 </body>
 </html>

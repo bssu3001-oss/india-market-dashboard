@@ -183,6 +183,8 @@
   function volumeAnalysis(candles) {
     if (candles.length < 20) return { trend: '데이터 부족', vs_ma5: null, vs_ma20: null };
     var vols = candles.map(function (c) { return c.volume || 0; });
+    while (vols.length > 20 && !vols[vols.length - 1]) vols.pop();  // 오늘 거래량 미집계(0)는 빼고 최근 확정일 기준
+    if (!vols.slice(-20).some(function (v) { return v > 0; })) return { trend: '데이터 없음', vs_ma5_pct: null, vs_ma20_pct: null };
     var ma5 = vols.slice(-5).reduce(function (a, b) { return a + b; }, 0) / 5;
     var ma20 = vols.slice(-20).reduce(function (a, b) { return a + b; }, 0) / 20;
     var cur = vols[vols.length - 1];
@@ -292,8 +294,8 @@
     var lines = [
       '현재 ' + (CFG.name || '') + '은(는) 이동평균 ' + alignment + ' 상태로 ' + trendWord + ' 추세입니다.',
       'RSI ' + rsi.toFixed(0) + '은(는) ' + (rsi >= 70 ? '과열 구간으로 단기 조정에 주의해야 합니다' : (rsi <= 30 ? '과매도 구간으로 반등 가능성이 있습니다' : '정상 범위입니다')) + '.',
-      '거래량은 20일 평균 대비 ' + (volVs >= 0 ? '+' : '') + volVs.toFixed(0) + '%로 ' + (volVs > 0 ? '힘이 실리고 있습니다' : '약해지고 있습니다') + '.',
     ];
+    if (ind.volume.vs_ma20_pct != null) lines.push('거래량은 20일 평균 대비 ' + (volVs >= 0 ? '+' : '') + volVs.toFixed(0) + '%로 ' + (volVs > 0 ? '힘이 실리고 있습니다' : '약해지고 있습니다') + '.');
     if (strongestSup) {
       var resStr = nearestRes ? (', 저항선은 ' + money(nearestRes) + ' (+' + distRes.toFixed(1) + '%)') : '';
       lines.push('핵심 지지선은 ' + money(strongestSup) + ' (현재가 대비 -' + distSup.toFixed(1) + '%)' + resStr + '입니다.');
@@ -413,7 +415,9 @@
     var ts = res.timestamp || [], q = res.indicators.quote[0];
     var out = [], lastRaw = null;
     for (var i = 0; i < ts.length; i++) {
-      var o = q.open[i], h = q.high[i], l = q.low[i], c = q.close[i];
+      var nz = function (v) { return (v != null && v > 0) ? v : null; };  // 야후가 모르는 값을 0으로 보내는 경우 제외
+      var o = nz(q.open[i]), h = nz(q.high[i]), l = nz(q.low[i]), c = nz(q.close[i]);
+      if (o == null && c != null) o = (out.length ? out[out.length - 1].close : c);  // 시가만 0 → 전일 종가로
       if (o == null) continue;                 // 데이터 없는 봉 제외
       if (c == null) {                          // 종가만 null = 야후 미확정 최근 봉 → 실제 시·고·저 보관
         lastRaw = { date: tzDate(ts[i]), open: o, high: h, low: l, volume: q.volume[i] || 0 };
@@ -437,9 +441,9 @@
     }
     // ② 그래도 최근 거래일 봉이 비면 meta만으로 생성
     if (mp != null && md && (!last || last.date < md)) {
-      var mo = m.regularMarketOpen != null ? m.regularMarketOpen : mp;
-      var mh = m.regularMarketDayHigh != null ? m.regularMarketDayHigh : mp;
-      var ml = m.regularMarketDayLow != null ? m.regularMarketDayLow : mp;
+      var mo = m.regularMarketOpen > 0 ? m.regularMarketOpen : mp;
+      var mh = m.regularMarketDayHigh > 0 ? m.regularMarketDayHigh : mp;
+      var ml = m.regularMarketDayLow > 0 ? m.regularMarketDayLow : mp;
       result.push({ date: md, open: mo, high: Math.max(mh, mo, mp), low: Math.min(ml, mo, mp), close: mp, volume: m.regularMarketVolume || 0 });
     }
     return result;
@@ -527,7 +531,7 @@
     var rsiLabel = rsi >= 70 ? '과열' : (rsi <= 30 ? '과매도' : '정상');
     var items = [
       { label: 'RSI (일봉 14)', val: (rsi != null ? rsi : '–') + ' <span style="font-size:11px">' + rsiLabel + '</span>', style: 'color:' + rsiColor },
-      { label: '거래량 추세', val: vol.trend || '–', cls: vol.trend === '증가' ? 'up' : 'down' },
+      { label: '거래량 추세', val: vol.trend || '–', cls: vol.trend === '증가' ? 'up' : (vol.trend === '감소' ? 'down' : '') },
       { label: 'vs 20일 평균', val: pct(vol.vs_ma20_pct), cls: colorClass(vol.vs_ma20_pct) },
       { label: '60일 고점 대비', val: pct(pos.from_60d_high_pct), cls: 'down' },
       { label: '60일 저점 대비', val: pct(pos.from_60d_low_pct), cls: 'up' },
@@ -540,7 +544,7 @@
     var candles = (D.candles || []).slice().reverse().slice(0, 20);
     $('k-trades-tbody').innerHTML = candles.map(function (c, i) {
       var prev = candles[i + 1], chg = prev ? (c.close - prev.close) / prev.close * 100 : null;
-      return '<tr><td>' + c.date + '</td><td>' + money(c.close) + '</td><td class="' + (chg != null ? colorClass(chg) : '') + '">' + (chg != null ? pct(chg) : '–') + '</td><td>' + fmt(c.volume) + '</td></tr>';
+      return '<tr><td>' + c.date + '</td><td>' + money(c.close) + '</td><td class="' + (chg != null ? colorClass(chg) : '') + '">' + (chg != null ? pct(chg) : '–') + '</td><td>' + (c.volume > 0 ? fmt(c.volume) : '–') + '</td></tr>';
     }).join('');
   }
   function renderInsights() {
