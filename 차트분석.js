@@ -148,6 +148,15 @@
       return cl.map(function (g) { return rp(g.reduce(function (a, b) { return a + b; }, 0) / g.length); });
     }
     var supports = cluster(swingLows).filter(function (p) { return p < current; }).sort(function (a, b) { return b - a; }).slice(0, 4);
+    if (!supports.length) {  // 60일 신저가 근처라 아래 지지선이 없으면 최대 1년 범위에서 찾음
+      var longLows = [];
+      for (i = 2; i < resRecent.length - 2; i++) {
+        var ll = resRecent[i].low, mn = Infinity;
+        for (var q = i - 2; q <= i + 2; q++) mn = Math.min(mn, resRecent[q].low);
+        if (ll === mn) longLows.push(ll);
+      }
+      supports = cluster(longLows).filter(function (p) { return p < current; }).sort(function (a, b) { return b - a; }).slice(0, 4);
+    }
     var resistances = cluster(swingHighs).filter(function (p) { return p > current; }).sort(function (a, b) { return a - b; }).slice(0, 5);
     var nearestSup = supports[0] != null ? supports[0] : null;
     var nearestRes = resistances[0] != null ? resistances[0] : null;
