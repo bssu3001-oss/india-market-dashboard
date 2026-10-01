@@ -192,7 +192,7 @@
       current: cur, ma5: Math.round(ma5), ma20: Math.round(ma20),
       vs_ma5_pct: ma5 ? Math.round((cur - ma5) / ma5 * 100 * 10) / 10 : null,
       vs_ma20_pct: ma20 ? Math.round((cur - ma20) / ma20 * 100 * 10) / 10 : null,
-      trend: cur > ma5 ? '증가' : '감소',
+      trend: cur > ma20 ? '증가' : '감소',  // 옆에 표시되는 'vs 20일 평균'과 같은 기준
     };
   }
   function highLowPosition(candles, quote) {
