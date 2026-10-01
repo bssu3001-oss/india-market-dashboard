@@ -1,0 +1,39 @@
+name: 예비 데이터 갱신 (카톡 없음)
+
+on:
+  schedule:
+    # 하루 2번: 한국시간 07:00(미국장 마감 후) / 17:00(아시아장 마감 후), 평일
+    - cron: "0 22 * * 0-4"
+    - cron: "0 8 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install yfinance pandas
+      - name: 시장데이터.json 갱신 (카톡 전송 안 함)
+        run: python 데이터갱신.py
+      - name: 저장 후 사이트 다시 올리기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add 시장데이터.json
+          if git diff --staged --quiet; then echo "변경 없음"; exit 0; fi
+          git commit -m "예비 데이터 갱신 $(date -u +%F)"
+          git push
+          gh workflow run deploy.yml --ref main

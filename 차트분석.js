@@ -382,7 +382,7 @@
 
   // ═══════════════ 야후 데이터 ═══════════════
   var PROXIES = [
-    function (u) { return 'https://corsproxy.io/?' + encodeURIComponent(u); },
+    function (u) { return 'https://siiiido-proxy.bssu3001.workers.dev/?url=' + encodeURIComponent(u); },
     function (u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
     function (u) { return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); },
   ];

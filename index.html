@@ -417,7 +417,7 @@ function renderChart(labels, prices) {
 async function fetchYahoo(ticker, interval, range) {
   const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
   const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://siiiido-proxy.bssu3001.workers.dev/?url=${encodeURIComponent(url)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
@@ -693,7 +693,7 @@ async function fetchNews() {
     try {
       const ctrl = new AbortController();
       const t = setTimeout(()=>ctrl.abort(), 10000);
-      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(feedUrl)}`, {signal: ctrl.signal});
+      const r = await fetch(`https://siiiido-proxy.bssu3001.workers.dev/?url=${encodeURIComponent(feedUrl)}`, {signal: ctrl.signal});
       clearTimeout(t);
       if (!r.ok) throw new Error();
       const xml = await r.text();

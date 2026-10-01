@@ -9,7 +9,7 @@
 
   // ── 여러 CORS 프록시를 순서대로 시도 (하나 막혀도 다음으로) ──
   const PROXIES = [
-    (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    (u) => `https://siiiido-proxy.bssu3001.workers.dev/?url=${encodeURIComponent(u)}`,
     (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
   ];
