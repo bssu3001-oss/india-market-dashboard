@@ -21,6 +21,8 @@
     dec = dec == null ? 0 : dec;
     return Number(n).toLocaleString('ko-KR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
   }
+  // 가격 반올림: 대시보드 표시 단위(dec)에 맞춤 (VNM $17처럼 작은 가격이 정수로 뭉개지지 않게)
+  function rp(n) { var f = Math.pow(10, DEC); return Math.round(n * f) / f; }
   function money(n) { if (n == null || isNaN(n)) return '–'; return PFX + fmt(n, DEC) + SFX; }
   function pct(n) {
     if (n == null || isNaN(n)) return '–';
@@ -88,7 +90,7 @@
     }
     var atr = 0, k; for (k = 0; k < period; k++) atr += trs[k]; atr /= period;
     for (k = period; k < trs.length; k++) atr = (atr * (period - 1) + trs[k]) / period;
-    return Math.round(atr * 10) / 10;
+    var af = Math.pow(10, DEC + 2); return Math.round(atr * af) / af;
   }
   function movingAlignment(candles) {
     var ma5 = smaCurrent(candles, 5), ma20 = smaCurrent(candles, 20), ma60 = smaCurrent(candles, 60), ma120 = smaCurrent(candles, 120);
@@ -136,14 +138,14 @@
     function cluster(prices, thr) {
       thr = thr || 0.5;
       if (!prices.length) return [];
-      var uniq = Array.from(new Set(prices.map(function (p) { return Math.round(p); }))).sort(function (x, y) { return x - y; });
+      var uniq = Array.from(new Set(prices.map(function (p) { return rp(p); }))).sort(function (x, y) { return x - y; });
       var cl = [[uniq[0]]];
       for (var k = 1; k < uniq.length; k++) {
         var p = uniq[k];
         if (Math.abs(p - cl[cl.length - 1][0]) / cl[cl.length - 1][0] * 100 < thr) cl[cl.length - 1].push(p);
         else cl.push([p]);
       }
-      return cl.map(function (g) { return Math.round(g.reduce(function (a, b) { return a + b; }, 0) / g.length); });
+      return cl.map(function (g) { return rp(g.reduce(function (a, b) { return a + b; }, 0) / g.length); });
     }
     var supports = cluster(swingLows).filter(function (p) { return p < current; }).sort(function (a, b) { return b - a; }).slice(0, 4);
     var resistances = cluster(swingHighs).filter(function (p) { return p > current; }).sort(function (a, b) { return a - b; }).slice(0, 5);
@@ -263,12 +265,12 @@
     else if (verdict === '매수 검토' && confidence === '높음') banner = '⚡ 매수 시그널: ' + reasons.slice(0, 2).join(', ');
     else if (rsi >= 75) banner = '⚠️ 단기 과열 주의 (RSI ' + rsi.toFixed(0) + ') — 신규 매수 자제';
     var supports = ind.sr.supports || [];
-    var entries = supports.length ? supports.slice(0, 4) : [Math.round(current * 0.99)];
-    var avgEntry = Math.round(entries.reduce(function (a, b) { return a + b; }, 0) / entries.length);
-    var stopLoss = atr ? Math.round(Math.min.apply(null, entries) - atr * 2) : Math.round(Math.min.apply(null, entries) * 0.97);
-    var target1 = (nearestRes && nearestRes > avgEntry) ? Math.round(nearestRes) : Math.round(avgEntry * 1.10);
+    var entries = supports.length ? supports.slice(0, 4) : [rp(current * 0.99)];
+    var avgEntry = rp(entries.reduce(function (a, b) { return a + b; }, 0) / entries.length);
+    var stopLoss = atr ? rp(Math.min.apply(null, entries) - atr * 2) : rp(Math.min.apply(null, entries) * 0.97);
+    var target1 = (nearestRes && nearestRes > avgEntry) ? rp(nearestRes) : rp(avgEntry * 1.10);
     var aboveT1 = (ind.sr.resistance_meta || []).filter(function (m) { return m.level > target1; });
-    var target2 = aboveT1.length ? Math.round(aboveT1.reduce(function (a, b) { return b.score > a.score ? b : a; }).level) : null;
+    var target2 = aboveT1.length ? rp(aboveT1.reduce(function (a, b) { return b.score > a.score ? b : a; }).level) : null;
     var risk = avgEntry - stopLoss, reward = target1 - avgEntry;
     var rr = risk > 0 ? Math.round(reward / risk * 100) / 100 : null;
     var scenario = {
@@ -487,10 +489,10 @@
   }
   function renderSR() {
     var sr = D.indicators.sr || {}, strong = sr.strongest_support;
-    var metaByLevel = {}; (sr.support_meta || []).forEach(function (m) { metaByLevel[Math.round(m.level)] = m; });
+    var metaByLevel = {}; (sr.support_meta || []).forEach(function (m) { metaByLevel[rp(m.level)] = m; });
     var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="color:var(--k-green);font-weight:600;margin-bottom:6px">지지선</div>';
     (sr.supports || []).forEach(function (s, i) {
-      var isStrong = strong != null && Math.round(s) === Math.round(strong), m = metaByLevel[Math.round(s)] || {};
+      var isStrong = strong != null && rp(s) === rp(strong), m = metaByLevel[rp(s)] || {};
       html += '<div style="padding:4px 0;' + (i === 0 ? 'font-weight:700;font-size:15px;' : '') + (isStrong ? 'color:#f7c948;' : '') + '">' + money(s);
       if (i === 0 && sr.dist_to_support_pct) html += ' <span style="color:var(--k-muted);font-size:12px">(-' + sr.dist_to_support_pct + '%)</span>';
       if (isStrong) html += ' <span style="font-size:11px;color:#f7c948">★핵심 지지 (테스트 ' + (m.touches || 0) + '회' + (m.confluence ? ', 이평선 겹침' : '') + ')</span>';
@@ -498,9 +500,9 @@
     });
     if (!sr.supports || !sr.supports.length) html += '<span style="color:var(--k-muted)">–</span>';
     html += '</div><div><div style="color:var(--k-red);font-weight:600;margin-bottom:6px">저항선</div>';
-    var strongR = sr.strongest_resistance, rMeta = {}; (sr.resistance_meta || []).forEach(function (m) { rMeta[Math.round(m.level)] = m; });
+    var strongR = sr.strongest_resistance, rMeta = {}; (sr.resistance_meta || []).forEach(function (m) { rMeta[rp(m.level)] = m; });
     (sr.resistances || []).forEach(function (r, i) {
-      var isStrongR = strongR != null && Math.round(r) === Math.round(strongR), rm = rMeta[Math.round(r)] || {};
+      var isStrongR = strongR != null && rp(r) === rp(strongR), rm = rMeta[rp(r)] || {};
       html += '<div style="padding:4px 0;' + (i === 0 ? 'font-weight:700;font-size:15px;' : '') + (isStrongR ? 'color:#f7c948;' : '') + '">' + money(r);
       if (i === 0 && sr.dist_to_resistance_pct != null) html += ' <span style="color:var(--k-muted);font-size:12px">(+' + sr.dist_to_resistance_pct + '%)</span>';
       if (isStrongR) html += ' <span style="font-size:11px;color:#f7c948">★가장 강한 저항 (테스트 ' + (rm.touches || 0) + '회' + (rm.confluence ? ', 이평선 겹침' : '') + ')</span>';
@@ -537,7 +539,7 @@
     $('k-insight-text').textContent = sig.insight || '–';
     var sc = sig.scenario || {}, entries = sc.entries || (sc.entry ? [sc.entry] : []);
     var ord = ['1차 진입', '2차 진입', '3차 진입', '4차 진입'];
-    var cards = entries.map(function (e, i) { var isStrong = sc.strongest_support != null && Math.round(e) === Math.round(sc.strongest_support); return { label: ord[i] || ((i + 1) + '차 진입'), val: money(e), strong: isStrong }; });
+    var cards = entries.map(function (e, i) { var isStrong = sc.strongest_support != null && rp(e) === rp(sc.strongest_support); return { label: ord[i] || ((i + 1) + '차 진입'), val: money(e), strong: isStrong }; });
     cards.push({ label: '균등 평단', val: money(sc.avg_entry || sc.entry) });
     cards.push({ label: '추세이탈선(손절)', val: money(sc.stop_loss), cls: 'down' });
     cards.push({ label: '1차 목표 (가까운 저항선)', val: money(sc.target), cls: 'up' });
@@ -586,7 +588,7 @@
     add(sr.strongest_support, GOLD, '핵심지지');
     var t1 = sr.nearest_resistance, t2 = (D.signal && D.signal.scenario && D.signal.scenario.target2) || null;
     add(t1, RED, '1차목표');
-    if (t2 != null && (t1 == null || Math.round(t2) !== Math.round(t1))) add(t2, GOLD, '2차목표');
+    if (t2 != null && (t1 == null || rp(t2) !== rp(t1))) add(t2, GOLD, '2차목표');
   }
   function buildChart(period, type) {
     var container = $('k-chart-container'); if (!container || !window.LightweightCharts) return;
