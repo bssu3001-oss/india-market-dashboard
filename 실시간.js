@@ -33,6 +33,19 @@
     try { return JSON.parse(txt); } catch (e) { return null; }
   }
 
+  // ── 구글뉴스 전용 중계 (구글 앱스 스크립트) ── 주소는 index.html의 GAS_NEWS_URL.
+  // 클라우드플레어 중계는 구글이 막아서 구글뉴스는 이쪽으로 받는다 (2026-10-19)
+  async function gasNewsText(feedUrl, timeoutMs) {
+    const base = window.GAS_NEWS_URL;
+    if (!base) return null;
+    try {
+      const r = await fetch(base + '?url=' + encodeURIComponent(feedUrl), { signal: AbortSignal.timeout(timeoutMs || 12000) });
+      if (!r.ok) return null;
+      const txt = await r.text();
+      return txt.charAt(0) === '<' ? txt : null;
+    } catch (e) { return null; }
+  }
+
   // ── jina.ai 리더 폴백 ── 구글뉴스가 공용 프록시 IP를 막을 때 사용.
   // RSS를 텍스트로 변환해 받아 제목/링크/날짜를 파싱한다(자체 인프라라 차단에 강함).
   function parseJinaNews(txt, source) {
@@ -322,7 +335,7 @@
         const items = await new Promise((resolve) => {
           let done = false; let pending = 3;
           const tryResolve = (r) => { if (!done && r.length) { done = true; resolve(r); } if (--pending === 0 && !done) resolve([]); };
-          proxyText(f.url, 10000).then(xml => tryResolve(xml ? parseXml(xml) : [])).catch(() => tryResolve([]));
+          gasNewsText(f.url, 12000).then(xml => tryResolve(xml ? parseXml(xml) : [])).catch(() => tryResolve([]));
           fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f.url)}`, { signal: AbortSignal.timeout(10000) })
             .then(r => r.ok ? r.json() : null).then(d => tryResolve(d ? parseRss(d) : [])).catch(() => tryResolve([]));
           jinaNewsItems(f.url, f.source, 14000).then(it => tryResolve(it || [])).catch(() => tryResolve([]));
